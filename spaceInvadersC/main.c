@@ -50,8 +50,6 @@ int main(void) {
     volatile int* PS2_ptr = (int*)0xff200100;
     volatile char byte1 = 0, byte2 = 0, byte3 = 0;
 
-    *(PS2_ptr) = 0xFF; // reset
-
     //draw inital screen
     int playerX = SCREEN_WIDTH / 2;
     int playerY = SCREEN_HEIGHT - 20;
@@ -60,7 +58,7 @@ int main(void) {
     waitForVSync(); // swap front and back buffers on VGA vertical sync
     pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
 
-    // continually draw the screen
+    // continually check for input
     while (1) {
         volatile int PS2_data = *(PS2_ptr); // read the Data register in the PS/2 port
 
@@ -77,14 +75,18 @@ int main(void) {
 }
 
 bool HEX_PS2(char b1, char b2, char b3, int* playerX, int* playerY) {
-    volatile unsigned int shift_buffer;
+    volatile unsigned int makeCode;
+    volatile unsigned int breakCode;
 
-    shift_buffer = (b1 << 16) | (b2 << 8) | b3;
+    makeCode = (b2 << 8) | b3;
+    breakCode = (b1 << 16) | (b2 << 8) | b3;
 
-    if (shift_buffer == 0xe0f074 && *playerX < (SCREEN_WIDTH - PLAYER_WIDTH)) {   	// Pressed Right and the player is not on the edge of the screen
-
+    //Right Key
+    //makecode = 0xe074, breakcode = 0xe0f074
+    if (makeCode == 0xe074 && *playerX < (SCREEN_WIDTH - PLAYER_WIDTH)) {   	// Pressed Right and the player is not on the edge of the screen
+		
         //drawing on the previous screen, so the player is still
-        //one pixel back
+        //two pixel back
         drawBlack(*playerX - 2, *playerY + 3, 4, 5);
 
         // move the player right and draw it
@@ -92,9 +94,12 @@ bool HEX_PS2(char b1, char b2, char b3, int* playerX, int* playerY) {
         drawPlayer(*playerX, *playerY);
         return true;
     }
-    else if (shift_buffer == 0xe0f06b && *playerX > PLAYER_WIDTH) {                 // Pressed Left and the player is not on the edge of the screen
+
+    //Left Key
+    //makecode = 0xe06b, breakcode = 0xe0f06b
+    else if (makeCode == 0xe06b && *playerX > PLAYER_WIDTH) {                 // Pressed Left and the player is not on the edge of the screen
         //drawing on the previous screen, so the player is still
-        //one pixel back
+        //two pixel back
         drawBlack(*playerX + PLAYER_WIDTH - 2, *playerY + 3, 4, 5);
 
         // move the player right and draw it
@@ -102,6 +107,7 @@ bool HEX_PS2(char b1, char b2, char b3, int* playerX, int* playerY) {
         drawPlayer(*playerX, *playerY);
         return true;
     }
+    	
     return false;
 }
 
