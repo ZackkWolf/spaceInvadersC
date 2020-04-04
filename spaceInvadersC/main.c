@@ -17,6 +17,8 @@ void drawPlayer(int xInit, int yInit);
 
 void ps2Input(char b1, char b2, char b3, int* playerX, bool* shotFired);
 
+void displayScoreOnHex3_0(int score);
+
 
 
 const int PLAYER_WIDTH = 11;
@@ -38,7 +40,12 @@ const short int playerIcon[8][11] = {
     {0x4FE0, 0x4FE0, 0x4FE0, 0x4FE0, 0x4FE0, 0x4FE0, 0x4FE0, 0x4FE0, 0x4FE0, 0x4FE0, 0x4FE0}
 };
 
+const char bitCodes[10] = { 0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01100111 };
+
 int main(void) {
+    // draw 0000 on HEX3_0
+    displayScoreOnHex3_0(0);
+
     volatile int* pixelCtrlPtr = (int*)0xFF203020;
     *(pixelCtrlPtr + 1) = 0xC8000000;
     waitForVSync();
@@ -61,6 +68,7 @@ int main(void) {
     short int shotColor = 0x0000;
     bool shotFired = false;
     bool eraseShot = false; // this variables keeps track of if you need to erase the shot on the next frame
+    int numShotsFired = 0;
 
     drawPlayer(playerX, playerY);
     waitForVSync(); // swap front and back buffers on VGA vertical sync
@@ -106,6 +114,8 @@ int main(void) {
 
         // initialize the shot if the button is pressed and if a shot is not already fired
         if (shotFired && shotColor == 0x0000) {
+            numShotsFired++;
+            displayScoreOnHex3_0(numShotsFired);
             shotPositionX = playerX + PLAYER_WIDTH / 2;
             shotPositionY = playerY - 5;
             shotColor = 0xFFFF;
@@ -125,6 +135,26 @@ int main(void) {
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
 
     }
+}
+
+void displayScoreOnHex3_0(int score) {
+    int* hex3_0ptr = (int*)0xFF200020;
+    int digits[4] = { 0,0,0,0 };    // digits is an array of the score digits from with entry 0 being the ones
+    int bitCode = 0;
+
+    for (int i = 0; i < 4; ++i) {
+        digits[i] = score % 10;
+        score /= 10;
+    }
+
+    // get the bit codes from most sig digit to least
+    // and shift them by 4
+    for (int i = 3; i >= 0; --i) {
+        char code = bitCodes[digits[i]];
+        bitCode = bitCode << 8 | code;
+    }
+
+    *hex3_0ptr = bitCode;
 }
 
 void ps2Input(char b1, char b2, char b3, int* playerX, bool* shotFired) {
