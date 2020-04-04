@@ -7,6 +7,7 @@ void clearScreen();
 void plotPixel(int x, int y, short int lineColor);
 void waitForVSync();
 void drawLine(int x0, int y0, int x1, int y1, short int color);
+void drawVerticalLine(int x, int y0, int y1, short int color);
 
 //this function draws black from xInit to (xInit + width)
 //and yInit to (yInit + height)
@@ -14,7 +15,7 @@ void drawBlack(int xInit, int yInit, int width, int height);
 
 void drawPlayer(int xInit, int yInit);
 
-void ps2Input(char b1, char b2, char b3, int* playerX, int* playerY, bool* shotFired);
+void ps2Input(char b1, char b2, char b3, int* playerX, bool* shotFired);
 
 
 
@@ -53,7 +54,7 @@ int main(void) {
 
     //draw inital screen
     int playerX = SCREEN_WIDTH / 2;
-    int playerY = SCREEN_HEIGHT - 20;
+    const int playerY = SCREEN_HEIGHT - 20;
 
     int shotPositionX = SCREEN_WIDTH;
     int shotPositionY = SCREEN_HEIGHT / 2;
@@ -74,21 +75,20 @@ int main(void) {
 
         // a shot was fired on the last frame, so clear it
         if (shotColor != 0x0000) {
-            drawLine(shotPositionX, shotPositionY + 4, shotPositionX, shotPositionY + 7, 0x0000);
+            drawVerticalLine(shotPositionX, shotPositionY + 4, shotPositionY + 7, 0x0000);
 
-            //move the shot one pixel up if its not at the top of the screen
+            //move the shot four pixels up if its not at the top of the screen
             //otherwise set its colour to black so it doesnt draw anymore
             if (shotPositionY > 10) {
                 shotPositionY -= 4;
             }
             else {
-                drawLine(shotPositionX, shotPositionY, shotPositionX, shotPositionY + 3, 0x0000);
                 shotColor = 0x0000;
                 eraseShot = true;
             }
         }
         else if (eraseShot) {
-            drawLine(shotPositionX, shotPositionY, shotPositionX, shotPositionY + 3, 0x0000);
+            drawVerticalLine(shotPositionX, shotPositionY, shotPositionY + 3, 0x0000);
             eraseShot = false;
         }
 
@@ -102,10 +102,10 @@ int main(void) {
         shotFired = false;
 
         //checks for input and updates variables accordingly
-        ps2Input(byte1, byte2, byte3, &playerX, &playerY, &shotFired);
+        ps2Input(byte1, byte2, byte3, &playerX, &shotFired);
 
-        // initialize the shot
-        if (shotFired) {
+        // initialize the shot if the button is pressed and if a shot is not already fired
+        if (shotFired && shotColor == 0x0000) {
             shotPositionX = playerX + PLAYER_WIDTH / 2;
             shotPositionY = playerY - 5;
             shotColor = 0xFFFF;
@@ -114,7 +114,7 @@ int main(void) {
 
         // if the shotColor is not black, then draw it
         if (shotColor != 0x0000) {
-            drawLine(shotPositionX, shotPositionY, shotPositionX, shotPositionY + 3, shotColor);
+            drawVerticalLine(shotPositionX, shotPositionY, shotPositionY + 3, shotColor);
         }
 
         //draw the player in their current position
@@ -127,7 +127,7 @@ int main(void) {
     }
 }
 
-void ps2Input(char b1, char b2, char b3, int* playerX, int* playerY, bool* shotFired) {
+void ps2Input(char b1, char b2, char b3, int* playerX, bool* shotFired) {
     volatile unsigned int twoParts;
     //volatile unsigned int breakCode;
 
@@ -199,6 +199,16 @@ void swap(int* first, int* second) {
     int temp = *first;
     *first = *second;
     *second = temp;
+}
+
+void drawVerticalLine(int x, int y0, int y1, short int color) {
+    if (y0 > y1) {
+        swap(&y0, &y1);
+    }
+
+    for (int i = y0; i <= y1; ++i) {
+        plotPixel(x, i, color);
+    }
 }
 
 void drawLine(int x0, int y0, int x1, int y1, short int color) {
