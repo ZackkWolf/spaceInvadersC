@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-void swap(int* first, int* second);
 void clearScreen();
 void plotPixel(int x, int y, short int lineColor);
 void waitForVSync();
@@ -13,7 +12,7 @@ void drawBlack(int xInit, int yInit, int width, int height);
 
 void drawPlayer(int xInit, int yInit);
 
-bool HEX_PS2(char b1, char b2, char b3, int* playerX, int* playerY);
+bool ps2Input(char b1, char b2, char b3, int* playerX, int* playerY);
 
 
 
@@ -49,6 +48,7 @@ int main(void) {
 
     volatile int* PS2_ptr = (int*)0xff200100;
     volatile char byte1 = 0, byte2 = 0, byte3 = 0;
+    *(PS2_ptr) = 0xFF; // reset
 
     //draw inital screen
     int playerX = SCREEN_WIDTH / 2;
@@ -66,48 +66,51 @@ int main(void) {
         byte2 = byte3;
         byte3 = PS2_data & 0xFF;
 
-        //HEX_PS2 returns true if something was pressed and the screen needs to be drawn again
-        if (HEX_PS2(byte1, byte2, byte3, &playerX, &playerY)) {
+        //HEX_PS2 returns true if something was pressed and the screen needs to be rewdrawn and swapped
+        if (ps2Input(byte1, byte2, byte3, &playerX, &playerY)) {
+            // draw black on the left and right of the player to clear their trail
+            drawBlack(playerX + PLAYER_WIDTH, playerY + 3, 4, 5);
+            drawBlack(playerX - 4, playerY + 3, 4, 5);
+            //draw the player in their current position
+            drawPlayer(playerX, playerY);
+
             waitForVSync(); // swap front and back buffers on VGA vertical sync
             pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
         }
     }
 }
 
-bool HEX_PS2(char b1, char b2, char b3, int* playerX, int* playerY) {
+bool ps2Input(char b1, char b2, char b3, int* playerX, int* playerY) {
     volatile unsigned int makeCode;
     volatile unsigned int breakCode;
 
     makeCode = (b2 << 8) | b3;
-    breakCode = (b1 << 16) | (b2 << 8) | b3;
+    //breakCode = (b1 << 16) | (b2 << 8) | b3;
 
     //Right Key
     //makecode = 0xe074, breakcode = 0xe0f074
     if (makeCode == 0xe074 && *playerX < (SCREEN_WIDTH - PLAYER_WIDTH)) {   	// Pressed Right and the player is not on the edge of the screen
-		
-        //drawing on the previous screen, so the player is still
-        //two pixel back
-        drawBlack(*playerX - 2, *playerY + 3, 4, 5);
-
-        // move the player right and draw it
+        // move the player right
         (*playerX) += 2;
-        drawPlayer(*playerX, *playerY);
         return true;
     }
-
     //Left Key
     //makecode = 0xe06b, breakcode = 0xe0f06b
-    else if (makeCode == 0xe06b && *playerX > PLAYER_WIDTH) {                 // Pressed Left and the player is not on the edge of the screen
-        //drawing on the previous screen, so the player is still
-        //two pixel back
-        drawBlack(*playerX + PLAYER_WIDTH - 2, *playerY + 3, 4, 5);
-
-        // move the player right and draw it
+    else if (makeCode == 0xe06b && *playerX > PLAYER_WIDTH) {                   // Pressed Left and the player is not on the edge of the screen
+        // move the player left
         (*playerX) -= 2;
-        drawPlayer(*playerX, *playerY);
         return true;
     }
-    	
+    //Space Key
+    //makecode = 0x29, breakcode = 0xf029
+    else if (b3 == 0x29) {                                                 // Pressed Space
+        plotPixel(10, 10, 0xFFFF);
+        plotPixel(10, 11, 0xFFFF);
+        plotPixel(11, 10, 0xFFFF);
+        plotPixel(11, 11, 0xFFFF);
+        return true;
+    }
+
     return false;
 }
 
@@ -152,10 +155,3 @@ void clearScreen() {
         }
     }
 }
-
-void swap(int* first, int* second) {
-    int temp = *first;
-    *first = *second;
-    *second = temp;
-}
-
