@@ -87,7 +87,7 @@ int main(void) {
             drawVerticalLine(shotPositionX, shotPositionY + 4, shotPositionY + 7, 0x0000);
 
             // move the shot upwards if its not at the top of the screen
-            // or erase the shot by drawing a red splat ontop if its at the top of the screen
+            // or erase the shot by drawing a red splat ontop of it at the top of the screen
             if (shotPositionY > 10) {
                 shotPositionY -= 4;
             }
@@ -110,8 +110,8 @@ int main(void) {
 
         // check if the red splat is being displayed
         if (redSplatFrames != 0) {
-            //if its been displayed for 15 frames, erase it
-            if (redSplatFrames > 15) {
+            //if its been displayed for 20 frames, erase it
+            if (redSplatFrames > 20) {
                 redSplatFrames = 0;
                 drawBlack(redSplatPositionX, redSplatPositionY, 8, 8);
                 eraseRedSplat = true;   //set this to true for the next frame to erase the red splat
