@@ -14,6 +14,12 @@ void drawVerticalLine(int x, int y0, int y1, short int color);
 void drawBlack(int xInit, int yInit, int width, int height);
 
 void drawPlayer(int xInit, int yInit);
+void drawSquid0(int xInit, int yInit);
+void drawSquid1(int xInit, int yInit);
+void drawBunny0(int xInit, int yInit);
+void drawBunny1(int xInit, int yInit);
+void drawSkull0(int xInit, int yInit);
+void drawSkull1(int xInit, int yInit);
 
 void ps2Input(char b1, char b2, char b3, int* playerX, bool* shotFired);
 
@@ -105,7 +111,6 @@ const short int skullIcon1[8][12] = {
     {0x0000, 0x0000, 0xFFFF, 0xFFFF, 0x0000, 0xFFFF, 0xFFFF, 0x0000, 0xFFFF, 0xFFFF, 0x0000, 0x0000},
     {0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0xFFFF}
 };
-
 
 const char bitCodes[10] = { 0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01100111 };
 
@@ -250,23 +255,6 @@ void ps2Input(char b1, char b2, char b3, int* playerX, bool* shotFired) {
     }
 }
 
-void drawPlayer(int xInit, int yInit) {
-    for (int y = 0; y < PLAYER_HEIGHT; ++y) {
-        for (int x = 0; x < PLAYER_WIDTH; ++x) {
-            plotPixel(xInit + x, yInit + y, playerIcon[y][x]);
-        }
-    }
-}
-
-void drawBlack(int xInit, int yInit, int width, int height) {
-    for (int y = yInit; y < yInit + height && y < SCREEN_HEIGHT; ++y) {
-        for (int x = xInit; x < xInit + width && x < SCREEN_WIDTH; ++x) {
-            plotPixel(x, y, 0x000000);
-        }
-    }
-}
-
-
 void plotPixel(int x, int y, short int lineColor) {
     *(short int*)(pixelBufferStart + (y << 10) + (x << 1)) = lineColor;
 }
@@ -338,6 +326,71 @@ void drawLine(int x0, int y0, int x1, int y1, short int color) {
         if (error >= 0) {
             y += yStep;
             error -= deltaX;
+        }
+    }
+}
+
+void drawPlayer(int xInit, int yInit) {
+    for (int y = 0; y < PLAYER_HEIGHT; ++y) {
+        for (int x = 0; x < PLAYER_WIDTH; ++x) {
+            plotPixel(xInit + x, yInit + y, playerIcon[y][x]);
+        }
+    }
+}
+
+void drawSquid0(int xInit, int yInit) {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            plotPixel(xInit + x, yInit + y, squidIcon0[y][x]);
+        }
+    }
+}
+
+void drawSquid1(int xInit, int yInit) {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            plotPixel(xInit + x, yInit + y, squidIcon1[y][x]);
+        }
+    }
+}
+
+void drawBunny0(int xInit, int yInit) {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 11; ++x) {
+            plotPixel(xInit + x, yInit + y, bunnyIcon0[y][x]);
+        }
+    }
+}
+
+void drawBunny1(int xInit, int yInit) {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 11; ++x) {
+            plotPixel(xInit + x, yInit + y, bunnyIcon1[y][x]);
+        }
+    }
+}
+
+void drawSkull0(int xInit, int yInit) {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 12; ++x) {
+            plotPixel(xInit + x, yInit + y, skullIcon0[y][x]);
+        }
+    }
+}
+
+void drawSkull1(int xInit, int yInit) {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 12; ++x) {
+            plotPixel(xInit + x, yInit + y, skullIcon1[y][x]);
+        }
+    }
+}
+
+
+void drawBlack(int xInit, int yInit, int width, int height) {
+    for (int y = yInit; y < yInit + height && y < SCREEN_HEIGHT; ++y) {
+        for (int x = xInit; x < xInit + width && x < SCREEN_WIDTH; ++x) {
+            plotPixel(x, y, 0x000000);
         }
     }
 }
