@@ -63,7 +63,13 @@ int main(void) {
     short int shotColor = 0x0000;
     bool shotFired = false;
     bool eraseShot = false; // this variables keeps track of if you need to erase the shot on the next frame
+
     int numShotsFired = 0;
+
+    int redSplatPositionX;
+    int redSplatPositionY;
+    int redSplatFrames = 0;
+    bool eraseRedSplat = false;
 
     drawPlayer(playerX, playerY);
     waitForVSync(); // swap front and back buffers on VGA vertical sync
@@ -80,19 +86,43 @@ int main(void) {
         if (shotColor != 0x0000) {
             drawVerticalLine(shotPositionX, shotPositionY + 4, shotPositionY + 7, 0x0000);
 
-            //move the shot four pixels up if its not at the top of the screen
-            //otherwise set its colour to black so it doesnt draw anymore
+            // move the shot upwards if its not at the top of the screen
+            // or erase the shot by drawing a red splat ontop if its at the top of the screen
             if (shotPositionY > 10) {
                 shotPositionY -= 4;
             }
             else {
+                //erase the shot
                 shotColor = 0x0000;
-                eraseShot = true;
+                eraseShot = true;   //set this to true so the next frame erases the shot
+
+                //draw the red splat
+                redSplatPositionX = shotPositionX - PLAYER_WIDTH / 2;
+                redSplatPositionY = shotPositionY;
+                drawRedSplat(redSplatPositionX, redSplatPositionY);
+                redSplatFrames = 1;
             }
         }
-        else if (eraseShot) {
-            drawVerticalLine(shotPositionX, shotPositionY, shotPositionY + 3, 0x0000);
+        else if (eraseShot) {   //enters this on the next frame to draw the red splat over the shot
+            drawRedSplat(redSplatPositionX, redSplatPositionY);
             eraseShot = false;
+        }
+
+        // check if the red splat is being displayed
+        if (redSplatFrames != 0) {
+            //if its been displayed for 15 frames, erase it
+            if (redSplatFrames > 15) {
+                redSplatFrames = 0;
+                drawBlack(redSplatPositionX, redSplatPositionY, 8, 8);
+                eraseRedSplat = true;   //set this to true for the next frame to erase the red splat
+            }
+            else {
+                redSplatFrames++;
+            }
+        }
+        else if (eraseRedSplat) {
+            drawBlack(redSplatPositionX, redSplatPositionY, 8, 8);
+            eraseRedSplat = false;
         }
 
         //update variables to current frame and draw new frame
