@@ -54,13 +54,15 @@ bool moveRight = false;
 
 int playerX = 320 / 2;
 const int playerY = 240 - 20;
-int main(void) {
+
+
+int main(void) {
 	disable_A9_interrupts(); // disable interrupts in the A9 processor
 	set_A9_IRQ_stack(); // initialize the stack pointer for IRQ mode
 	config_GIC(); // configure the general interrupt controller
 	config_PS2(); // configure the PS2 to enable interrupts
 	enable_A9_interrupts(); // enable interrupts in the A9 processor
-	
+
 
 
 	volatile int* pixelCtrlPtr = (int*)0xFF203020;
@@ -99,7 +101,7 @@ const int playerY = 240 - 20;
 		if (moveLeft) {
 			moveLeft = false;
 			// draw black on the right of the player to clear their trail
-			drawBlack(playerX + PLAYER_WIDTH - 2, playerY + 3, 2, 5);
+			drawBlack(playerX + PLAYER_WIDTH - 2, playerY + 3, 4, 5);
 
 			// move the player left
 			(playerX) -= 2;
@@ -118,7 +120,7 @@ const int playerY = 240 - 20;
 		else if (moveRight) {
 			moveRight = false;
 			// draw black on the left of the player to clear their trail
-			drawBlack(playerX, playerY + 3, 2, 5);
+			drawBlack(playerX - 2, playerY + 3, 4, 5);
 
 			// move the player right
 			(playerX) += 2;
@@ -150,7 +152,7 @@ const int playerY = 240 - 20;
 			displayScoreOnHex3_0(numShotsFired);
 			printf("%d\n", pixelBufferStart);
 		}
-		
+
 		// check if a shot is in the air
 		if (shotColor != 0x0000) {
 			// clear the old shot
@@ -174,7 +176,8 @@ const int playerY = 240 - 20;
 				drawRedSplat(redSplatPositionX, redSplatPositionY);
 				redSplatFrames = 1;
 			}
-		} else if (eraseShot) {   //enters this on the next frame to draw the red splat over the shot
+		}
+		else if (eraseShot) {   //enters this on the next frame to draw the red splat over the shot
 			drawRedSplat(redSplatPositionX, redSplatPositionY);
 			eraseShot = false;
 		}
@@ -207,7 +210,8 @@ const int playerY = 240 - 20;
 * Pushbutton - Interrupt Service Routine
 *
 * This routine checks which key has been pressed. It writes to HEX0
-*******************************************************************/void ps2_ISR(void) {
+*******************************************************************/
+void ps2_ISR(void) {
 	volatile int* PS2_ptr = (int*)0xff200100;
 	int PS2_data, RVALID;
 
@@ -241,7 +245,8 @@ const int playerY = 240 - 20;
 			shotFired = true;
 		}
 	}
-	return;}
+	return;
+}
 
 void displayScoreOnHex3_0(int score) {
 	int* hex3_0ptr = (int*)0xFF200020;
@@ -405,7 +410,8 @@ void set_A9_IRQ_stack(void) {
 	mode = 0b11010010;
 	asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
 	/* set banked stack pointer */
-	asm("mov sp, %[ps]" : : [ps] "r"(stack));	/* go back to SVC mode before executing subroutine return! */
+	asm("mov sp, %[ps]" : : [ps] "r"(stack));
+	/* go back to SVC mode before executing subroutine return! */
 	mode = 0b11010011;
 	asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
 }
