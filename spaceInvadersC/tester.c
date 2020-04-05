@@ -144,8 +144,7 @@ int main(void) {
 			// initialize the shot
 			shotColor = 0xFFFF;
 			shotPositionX = playerX + PLAYER_WIDTH / 2;
-			shotPositionY = playerY - 5;
-
+			shotPositionY = playerY - 7;
 
 			// this is extra stuff for testing
 			numShotsFired++;
