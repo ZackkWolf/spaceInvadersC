@@ -20,6 +20,7 @@ void drawBunny0(int xInit, int yInit);
 void drawBunny1(int xInit, int yInit);
 void drawSkull0(int xInit, int yInit);
 void drawSkull1(int xInit, int yInit);
+void drawRedSplat(int xInit, int yInit);
 
 void ps2Input(char b1, char b2, char b3, int* playerX, bool* shotFired);
 
