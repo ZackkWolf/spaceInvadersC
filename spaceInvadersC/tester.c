@@ -45,6 +45,7 @@ void displayScoreOnHex3_0(int score);
 
 void waitOnStartScreen();
 
+bool gameOver = false;
 
 const int PLAYER_WIDTH = 11;
 const int PLAYER_HEIGHT = 8;
@@ -52,9 +53,10 @@ const int PLAYER_HEIGHT = 8;
 const int SCREEN_WIDTH = 320; //X
 const int SCREEN_HEIGHT = 240; //Y
 
-int NUM_OF_ENEMIES = 72;
+int NUM_OF_ENEMIES = 55;
 bool moveEnemiesDown = false;
 int pixelsMovedDown = 0;
+bool drawSprite0 = true;
 
 volatile int pixelBufferStart; // global variable
 
@@ -82,27 +84,24 @@ int main(void) {
     int row = 0;
     for(int i = 0; i < NUM_OF_ENEMIES; ++i){
         counter++;
-        int index = i - row*12;
-        if(i < 12){
+        int index = i - row*11;
+        if(i < 11){
             enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 57 + ((8 * index) + (index * 10));
-        } else if(i > 11 && i < 24){
+            enemies_x[i] = 70 + ((8 * index) + (index * 10));
+        } else if(i > 10 && i < 22){
             enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 57 + ((8 * index) + (index * 10));
-        } else if(i > 23 && i < 36){
+            enemies_x[i] = 69 + ((8 * index) + (index * 10));
+        } else if(i > 21 && i < 33){
             enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 56 + ((8 * index) + (index * 10));
-        } else if(i > 35 && i < 48){
+            enemies_x[i] = 69 + ((8 * index) + (index * 10));
+        } else if(i > 32 && i < 44){
             enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 56 + ((8 * index) + (index * 10));
-        } else if(i > 47 && i < 60){
+            enemies_x[i] = 69 + ((8 * index) + (index * 10));
+        } else if(i > 43 && i < 55){
             enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 55 + ((8 * index) + (index * 10));
-        } else if(i > 59 && i < 72){
-            enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 55 + ((8 * index) + (index * 10));
+            enemies_x[i] = 69 + ((8 * index) + (index * 10));
         }
-        if (counter == 12){
+        if (counter == 11){
             row++;
             int dxIndex = row - 1;
             enemies_dx[dxIndex] = 1;
@@ -134,11 +133,12 @@ int main(void) {
     clearScreen();
     drawPlayer(playerX, playerY);
     drawEnemies(enemies_x, enemies_y);
+    drawSprite0 = false;
 
     volatile int* pixelCtrlPtr = (int*)0xFF203020;
 
     // put things that happen every frame regardless of user input here
-    while (1) {
+    while (!gameOver) {
         clearEnemies(enemies_x, enemies_y, enemies_dx);
         if (moveLeft) {
             moveLeft = false;
@@ -242,6 +242,10 @@ int main(void) {
 
         //draw the enemies in their current position
         updateEnemies(enemies_x, enemies_y, enemies_dx);
+        if(drawSprite0) drawSprite0 = false;
+        else drawSprite0 = true;
+
+        if(enemies_y[54] > 220) gameOver = true;
 
         // swap buffers
         waitForVSync(); // swap front and back buffers on VGA vertical sync
@@ -433,7 +437,7 @@ void drawColour(int xInit, int yInit, int width, int height) {
 
 void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
     for(int i = 0; i < NUM_OF_ENEMIES; ++i){
-        if(i < 12){
+        if(i < 11){
             if(moveEnemiesDown){
                 if(enemies_dx[0] == 1){ //was moving left, going to move right
                     drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
@@ -442,9 +446,9 @@ void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
                 }
                 drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 4);
             } else {
-                if(enemies_x[11] + 2 >= 300){
+                if(enemies_x[10] + 2 >= 273){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 20){
+                } else if(enemies_x[0] - 2 <= 47){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 12, 2);
                 }
                 if (enemies_dx[0] == 1) { //moving right
@@ -453,27 +457,7 @@ void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
                     drawBlack(enemies_x[i] + 4, enemies_y[i]-1, 8, 10);
                 }
             }
-        } else if(i > 11 && i < 24){
-            if(moveEnemiesDown){
-                if(enemies_dx[0] == 1){ //was moving left, going to move right
-                    drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
-                } else {
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 4, 10);
-                }
-                drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 4);
-            } else {
-                if(enemies_x[11] + 2 >= 300){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 20){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 12, 2);
-                }
-                if (enemies_dx[0] == 1) { //moving right
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 12, 10);
-                } else { //moving left
-                    drawBlack(enemies_x[i] + 4, enemies_y[i]-2, 8, 10);
-                }
-            }
-        } else if(i > 23 && i < 36){
+        } else if(i > 10 && i < 22){
             if(moveEnemiesDown){
                 if(enemies_dx[0] == 1){ //was moving left, going to move right
                     drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
@@ -482,9 +466,9 @@ void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
                 }
                 drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
             } else {
-                if(enemies_x[11] + 2 >= 300){
+                if(enemies_x[10] + 2 >= 273){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 20){
+                } else if(enemies_x[0] - 2 <= 47){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
                 }
                 if (enemies_dx[0] == 1) { //moving right
@@ -493,7 +477,7 @@ void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
                     drawBlack(enemies_x[i] + 3, enemies_y[i]-2, 12, 10);
                 }
             }
-        }  else if(i > 35 && i < 48){
+        } else if(i > 21 && i < 33){
             if(moveEnemiesDown){
                 if(enemies_dx[0] == 1){ //was moving left, going to move right
                     drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
@@ -502,9 +486,9 @@ void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
                 }
                 drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
             } else {
-                if(enemies_x[11] + 2 >= 300){
+                if(enemies_x[10] + 2 >= 273){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 20){
+                } else if(enemies_x[0] - 2 <= 47){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
                 }
                 if (enemies_dx[0] == 1) { //moving right
@@ -513,7 +497,7 @@ void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
                     drawBlack(enemies_x[i] + 3, enemies_y[i]-2, 12, 10);
                 }
             }
-        } else if(i > 47 && i < 60){
+        }  else if(i > 32 && i < 44){
             if(moveEnemiesDown){
                 if(enemies_dx[0] == 1){ //was moving left, going to move right
                     drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
@@ -522,9 +506,9 @@ void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
                 }
                 drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
             } else {
-                if(enemies_x[11] + 2 >= 300){
+                if(enemies_x[10] + 2 >= 273){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 20){
+                } else if(enemies_x[0] - 2 <= 47){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
                 }
                 if (enemies_dx[0] == 1) { //moving right
@@ -533,20 +517,18 @@ void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
                     drawBlack(enemies_x[i] + 4, enemies_y[i]-2, 12, 10);
                 }
             }
-        } else if(i > 59 && i < 72){
+        } else if(i > 43 && i < 55){
             if(moveEnemiesDown){
-                //for when moveEnemies just becomes true and the last horizontal trail was not cleared
                 if(enemies_dx[0] == 1){ //was moving left, going to move right
                     drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
                 } else {
                     drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 4, 10);
                 }
-                drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 14, 4);
+                drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
             } else {
-                //for when the enemies start moving horizontally again and the last vertical trail was not cleared
-                if(enemies_x[11] + 2 >= 300){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 12, 6);
-                } else if(enemies_x[0] - 2 <= 20){
+                if(enemies_x[10] + 2 >= 273){
+                    drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
+                } else if(enemies_x[0] - 2 <= 47){
                     drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
                 }
                 if (enemies_dx[0] == 1) { //moving right
@@ -564,24 +546,27 @@ void updateEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
     int counter = 0;
     for(int i = 0; i < NUM_OF_ENEMIES; ++i){
         counter++;
-        if(i < 12){
-            drawSquid0(enemies_x[i], enemies_y[i]);
-        } else if(i > 11 && i < 24){
-            drawSquid1(enemies_x[i], enemies_y[i]);
-        } else if(i > 23 && i < 36){
-            drawBunny0(enemies_x[i], enemies_y[i]);
-        }  else if(i > 35 && i < 48){
-            drawBunny1(enemies_x[i], enemies_y[i]);
-        } else if(i > 47 && i < 60){
-            drawSkull0(enemies_x[i], enemies_y[i]);
-        } else if(i > 59 && i < 72){
-            drawSkull1(enemies_x[i], enemies_y[i]);
+        if(i < 11){
+            if(drawSprite0) drawSquid0(enemies_x[i], enemies_y[i]);
+            else drawSquid1(enemies_x[i], enemies_y[i]);
+        } else if(i > 10 && i < 22){
+            if(drawSprite0) drawBunny0(enemies_x[i], enemies_y[i]);
+            else drawBunny1(enemies_x[i], enemies_y[i]);
+        } else if(i > 21 && i < 33){
+            if(drawSprite0) drawBunny0(enemies_x[i], enemies_y[i]);
+            else drawBunny1(enemies_x[i], enemies_y[i]);
+        } else if(i > 32 && i < 44){
+            if(drawSprite0) drawSkull0(enemies_x[i], enemies_y[i]);
+            else drawSkull1(enemies_x[i], enemies_y[i]);
+        } else if(i > 43 && i < 55){
+            if(drawSprite0) drawSkull0(enemies_x[i], enemies_y[i]);
+            else drawSkull1(enemies_x[i], enemies_y[i]);
         }
 
         if(moveEnemiesDown == false) {
             enemies_x[i] += enemies_dx[dxIndex];
 
-            if (counter == 12) { //i % 11 == 0 so move onto next row
+            if (counter == 11) { //i % 11 == 0 so move onto next row
                 dxIndex++;
                 counter = 0;
             }
@@ -589,21 +574,19 @@ void updateEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
             enemies_y[i] += 1;
         }
     }
-    if (enemies_x[11] + 2 >= 300) {
+    if (enemies_x[10] + 2 >= 273) {
         enemies_dx[0] = -1;
         enemies_dx[1] = -1;
         enemies_dx[2] = -1;
         enemies_dx[3] = -1;
         enemies_dx[4] = -1;
-        enemies_dx[5] = -1;
 
-    } else if (enemies_x[0] - 2 <= 20) {
+    } else if (enemies_x[0] - 2 <= 47) {
         enemies_dx[0] = 1;
         enemies_dx[1] = 1;
         enemies_dx[2] = 1;
         enemies_dx[3] = 1;
         enemies_dx[4] = 1;
-        enemies_dx[5] = 1;
     }
 
     if(moveEnemiesDown == true && pixelsMovedDown < 12){
@@ -611,9 +594,9 @@ void updateEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
     }else if(pixelsMovedDown >= 12){
         moveEnemiesDown = false;
         pixelsMovedDown = 0;
-    } else if (enemies_x[11] + 2 >= 300) {
+    } else if (enemies_x[10] + 2 >= 273) {
         moveEnemiesDown = true;
-    } else if (enemies_x[0] - 2 <= 20) {
+    } else if (enemies_x[0] - 2 <= 47) {
         moveEnemiesDown = true;
     }
 }
@@ -1279,18 +1262,21 @@ void drawPlayer(int xInit, int yInit) {
 
 void drawEnemies(int enemies_x[], int enemies_y[]){
     for(int i = 0; i < NUM_OF_ENEMIES; ++i){
-        if(i < 12){
-            drawSquid0(enemies_x[i], enemies_y[i]);
-        } else if(i > 11 && i < 24){
-            drawSquid1(enemies_x[i], enemies_y[i]);
-        } else if(i > 23 && i < 36){
-            drawBunny0(enemies_x[i], enemies_y[i]);
-        } else if(i > 35 && i < 48){
-            drawBunny1(enemies_x[i], enemies_y[i]);
-        } else if(i > 47 && i < 60){
-            drawSkull0(enemies_x[i], enemies_y[i]);
-        } else if(i > 59 && i < 72){
-            drawSkull1(enemies_x[i], enemies_y[i]);
+        if(i < 11){
+            if(drawSprite0) drawSquid0(enemies_x[i], enemies_y[i]);
+            else drawSquid1(enemies_x[i], enemies_y[i]);
+        } else if(i > 10 && i < 22){
+            if(drawSprite0) drawBunny0(enemies_x[i], enemies_y[i]);
+            else drawBunny1(enemies_x[i], enemies_y[i]);
+        } else if(i > 21 && i < 33){
+            if(drawSprite0) drawBunny0(enemies_x[i], enemies_y[i]);
+            else drawBunny1(enemies_x[i], enemies_y[i]);
+        } else if(i > 32 && i < 44){
+            if(drawSprite0) drawSkull0(enemies_x[i], enemies_y[i]);
+            else drawSkull1(enemies_x[i], enemies_y[i]);
+        } else if(i > 43 && i < 55){
+            if(drawSprite0) drawSkull0(enemies_x[i], enemies_y[i]);
+            else drawSkull1(enemies_x[i], enemies_y[i]);
         }
     }
 }
