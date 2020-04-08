@@ -307,20 +307,45 @@ void waitOnStartScreen() {
     // shotFired is turned high when the spacebar is pressed
     while (1) {
         // display a pretty pattern on the LEDs while we wait
-        if (counter % 75000 == 0) {
+        if (counter % 40000 == 0) {
+            subCounter++;
             counter = 0;
 
             if (subCounter < 10) {
-                subCounter++;
                 *(ledptr) = *(ledptr) << 1;
             }
             else if (subCounter == 10){
-                subCounter++;
                 *(ledptr) = 0x1FF;
             }
             else if (subCounter < 20){
-                subCounter++;
                 *(ledptr) = *(ledptr) >> 1;
+            }
+            else if (subCounter == 20){
+                *(ledptr) = 0x2AA;
+            }
+            else if (subCounter < 30) {
+                *(ledptr) = ~*(ledptr);
+            }
+            else if (subCounter == 30){
+                *(ledptr) = 0x1FE;
+            }
+            else if (subCounter == 31) {
+                *(ledptr) = 0x0FC;
+            }
+            else if (subCounter == 32) {
+                *(ledptr) = 0x078;
+            }
+            else if (subCounter == 33) {
+                *(ledptr) = 0x030;
+            }
+            else if (subCounter == 34) {
+                *(ledptr) = 0x000;
+            }
+            else if (subCounter == 35) {
+                *(ledptr) = 0x2AA;
+            }
+            else if (subCounter < 45) {
+                *(ledptr) = ~*(ledptr);
             }
             else {
                 subCounter = 0;
