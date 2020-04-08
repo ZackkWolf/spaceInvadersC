@@ -8,7 +8,9 @@ void config_PS2(void);
 void enable_A9_interrupts(void);
 void pushbutton_ISR(void);
 void ps2_ISR(void);
-void config_interrupt(int, int);/* ********************************************************************************
+void config_interrupt(int, int);
+
+/* ********************************************************************************
 * This program demonstrates use of interrupts with C code. The program
 *responds
 * to interrupts from the pushbutton KEY port in the FPGA.
@@ -93,7 +95,8 @@ void set_A9_IRQ_stack(void) {
 	mode = 0b11010010;
 	asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
 	/* set banked stack pointer */
-	asm("mov sp, %[ps]" : : [ps] "r"(stack));	/* go back to SVC mode before executing subroutine return! */
+	asm("mov sp, %[ps]" : : [ps] "r"(stack));
+	/* go back to SVC mode before executing subroutine return! */
 	mode = 0b11010011;
 	asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
 }
@@ -169,11 +172,13 @@ void pushbutton_ISR(void) {
 		HEX_bits = 0b01001111;
 	*HEX3_HEX0_ptr = HEX_bits;
 	return;
-}/********************************************************************
+}
+/********************************************************************
 * Pushbutton - Interrupt Service Routine
 *
 * This routine checks which key has been pressed. It writes to HEX0
-*******************************************************************/void ps2_ISR(void) {
+*******************************************************************/
+void ps2_ISR(void) {
 	volatile int* PS2_ptr = (int*)0xff200100;
 	int PS2_data, RVALID;
 	char byte1 = 0, byte2 = 0, byte3 = 0;
@@ -209,4 +214,5 @@ void pushbutton_ISR(void) {
 			*(HEX3_HEX0_ptr) = *(int*)(hex_segs);
 			*(HEX5_HEX4_ptr) = *(int*)(hex_segs + 4);
 		}
-	return;}
+	return;
+}
