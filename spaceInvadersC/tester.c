@@ -41,6 +41,8 @@ void drawSpaceIcon(int xInit, int yInit);
 void drawTapToPlayIcon(int xInit, int yInit);
 void drawStartScreen();
 
+void movePlayer(int* playerX, int *playerY, bool* moveLeft, bool* drawLeft, bool* moveRight, bool* drawRight);
+
 void displayScoreOnHex3_0(int score);
 
 void waitOnStartScreen();
@@ -140,44 +142,9 @@ int main(void) {
     // put things that happen every frame regardless of user input here
     while (!gameOver) {
         clearEnemies(enemies_x, enemies_y, enemies_dx);
-        if (moveLeft) {
-            moveLeft = false;
-            // draw black on the right of the player to clear their trail
-            drawBlack(playerX + PLAYER_WIDTH - 2, playerY + 3, 4, 5);
 
-            // move the player left
-            (playerX) -= 2;
-            drawPlayer(playerX, playerY);
-
-            drawLeft = true;		// signal to update next screen
-        }
-        else if (drawLeft) {
-            drawLeft = false;
-
-            // draw black on the right of the player to clear their trail
-            drawBlack(playerX + PLAYER_WIDTH, playerY + 3, 2, 5);
-
-            drawPlayer(playerX, playerY);
-        }
-        else if (moveRight) {
-            moveRight = false;
-            // draw black on the left of the player to clear their trail
-            drawBlack(playerX - 2, playerY + 3, 4, 5);
-
-            // move the player right
-            (playerX) += 2;
-            drawPlayer(playerX, playerY);
-
-            drawRight = true;		// signal to update next screen
-        }
-        else if (drawRight) {
-            drawRight = false;
-
-            // draw black on the left of the player to clear their trail
-            drawBlack(playerX - 2, playerY + 3, 2, 5);
-
-            drawPlayer(playerX, playerY);
-        }
+        // move player to new position and draw them
+        movePlayer(&playerX, &playerY, &moveLeft, &drawLeft, &moveRight, &drawRight);
 
         // check if a shot has just been fired
         if (shotFired) {
@@ -242,8 +209,7 @@ int main(void) {
 
         //draw the enemies in their current position
         updateEnemies(enemies_x, enemies_y, enemies_dx);
-        if(drawSprite0) drawSprite0 = false;
-        else drawSprite0 = true;
+        drawSprite0 = !drawSprite0;
 
         if(enemies_y[54] > 220) gameOver = true;
 
@@ -251,6 +217,48 @@ int main(void) {
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
 
+    }
+}
+
+
+void movePlayer(int* playerX, int *playerY, bool *moveLeft, bool* drawLeft, bool* moveRight, bool *drawRight) {
+    if (*moveLeft) {
+        *moveLeft = false;
+        // draw black on the right of the player to clear their trail
+        drawBlack(*playerX + PLAYER_WIDTH - 2, *playerY + 3, 4, 5);
+
+        // move the player left
+        (*playerX) -= 2;
+        drawPlayer(*playerX, *playerY);
+
+        *drawLeft = true;		// signal to update next screen
+    }
+    else if (*drawLeft) {
+        *drawLeft = false;
+
+        // draw black on the right of the player to clear their trail
+        drawBlack(*playerX + PLAYER_WIDTH, *playerY + 3, 2, 5);
+
+        drawPlayer(*playerX, *playerY);
+    }
+    else if (*moveRight) {
+        *moveRight = false;
+        // draw black on the left of the player to clear their trail
+        drawBlack(*playerX - 2, *playerY + 3, 4, 5);
+
+        // move the player right
+        (*playerX) += 2;
+        drawPlayer(*playerX, *playerY);
+
+        *drawRight = true;		// signal to update next screen
+    }
+    else if (*drawRight) {
+        *drawRight = false;
+
+        // draw black on the left of the player to clear their trail
+        drawBlack(*playerX - 2, *playerY + 3, 2, 5);
+
+        drawPlayer(*playerX, *playerY);
     }
 }
 
