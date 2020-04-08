@@ -41,9 +41,9 @@ void drawSpaceIcon(int xInit, int yInit);
 void drawTapToPlayIcon(int xInit, int yInit);
 void drawStartScreen();
 
-void movePlayer(int* playerX, int *playerY, bool* moveLeft, bool* drawLeft, bool* moveRight, bool* drawRight);
+void movePlayer(volatile bool* moveLeft, bool* drawLeft, volatile bool* moveRight, bool* drawRight);
 
-void drawShot(bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
+void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
     bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
     bool* eraseRedSplat);
 
@@ -149,7 +149,7 @@ int main(void) {
 
         // move player to new position and draw them
         // if input from the keyboard
-        movePlayer(&playerX, &playerY, &moveLeft, &drawLeft, &moveRight, &drawRight);
+        movePlayer(&moveLeft, &drawLeft, &moveRight, &drawRight);
 
         
         // draw the shot if one has been fired
@@ -172,7 +172,7 @@ int main(void) {
     }
 }
 
-void drawShot(bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
+void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
     bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
     bool* eraseRedSplat) {
 
@@ -238,15 +238,15 @@ void drawShot(bool* shotFired, int* shotPositionX, int* shotPositionY, int* numS
 }
 
 
-void movePlayer(int* playerX, int *playerY, bool *moveLeft, bool* drawLeft, bool* moveRight, bool *drawRight) {
+void movePlayer(volatile bool *moveLeft, bool* drawLeft, volatile bool* moveRight, bool *drawRight) {
     if (*moveLeft) {
         *moveLeft = false;
         // draw black on the right of the player to clear their trail
-        drawBlack(*playerX + PLAYER_WIDTH - 2, *playerY + 3, 4, 5);
+        drawBlack(playerX + PLAYER_WIDTH - 2, playerY + 3, 4, 5);
 
         // move the player left
-        (*playerX) -= 2;
-        drawPlayer(*playerX, *playerY);
+        (playerX) -= 2;
+        drawPlayer(playerX, playerY);
 
         *drawLeft = true;		// signal to update next screen
     }
@@ -254,18 +254,18 @@ void movePlayer(int* playerX, int *playerY, bool *moveLeft, bool* drawLeft, bool
         *drawLeft = false;
 
         // draw black on the right of the player to clear their trail
-        drawBlack(*playerX + PLAYER_WIDTH, *playerY + 3, 2, 5);
+        drawBlack(playerX + PLAYER_WIDTH, playerY + 3, 2, 5);
 
-        drawPlayer(*playerX, *playerY);
+        drawPlayer(playerX, playerY);
     }
     else if (*moveRight) {
         *moveRight = false;
         // draw black on the left of the player to clear their trail
-        drawBlack(*playerX - 2, *playerY + 3, 4, 5);
+        drawBlack(playerX - 2, playerY + 3, 4, 5);
 
         // move the player right
-        (*playerX) += 2;
-        drawPlayer(*playerX, *playerY);
+        (playerX) += 2;
+        drawPlayer(playerX, playerY);
 
         *drawRight = true;		// signal to update next screen
     }
@@ -273,9 +273,9 @@ void movePlayer(int* playerX, int *playerY, bool *moveLeft, bool* drawLeft, bool
         *drawRight = false;
 
         // draw black on the left of the player to clear their trail
-        drawBlack(*playerX - 2, *playerY + 3, 2, 5);
+        drawBlack(playerX - 2, playerY + 3, 2, 5);
 
-        drawPlayer(*playerX, *playerY);
+        drawPlayer(playerX, playerY);
     }
 }
 
@@ -297,6 +297,7 @@ void waitOnStartScreen() {
     drawPlayer(playerX, playerY);
 
     int counter = 0;
+    int subCounter = 0;
 
     volatile int* ledptr = (int*)0xFF200000;
     *(ledptr) = 0x3FF;
@@ -305,11 +306,29 @@ void waitOnStartScreen() {
     // wait until space is pressed until you swap screens
     // shotFired is turned high when the spacebar is pressed
     while (1) {
-
         // display a pretty pattern on the LEDs while we wait
-        if (counter % 100000 == 0) {
-            *(ledptr) = ~(*ledptr);
+        if (counter % 75000 == 0) {
+            counter = 0;
+
+            if (subCounter < 10) {
+                subCounter++;
+                *(ledptr) = *(ledptr) << 1;
+            }
+            else if (subCounter == 10){
+                subCounter++;
+                *(ledptr) = 0x1FF;
+            }
+            else if (subCounter < 20){
+                subCounter++;
+                *(ledptr) = *(ledptr) >> 1;
+            }
+            else {
+                subCounter = 0;
+                *(ledptr) = 0x3FF;
+            }
+            
         }
+
         if (shotFired) {
             *(ledptr) = 0x00;
             break;
