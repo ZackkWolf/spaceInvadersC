@@ -59,7 +59,7 @@ const int PLAYER_HEIGHT = 8;
 const int SCREEN_WIDTH = 320; //X
 const int SCREEN_HEIGHT = 240; //Y
 
-int NUM_OF_ENEMIES = 55;
+const int NUM_OF_ENEMIES = 55;
 bool moveEnemiesDown = false;
 int pixelsMovedDown = 0;
 bool drawSprite0 = true;
@@ -296,12 +296,26 @@ void waitOnStartScreen() {
     clearScreen();
     drawPlayer(playerX, playerY);
 
+    int counter = 0;
+
+    volatile int* ledptr = (int*)0xFF200000;
+    *(ledptr) = 0x3FF;
+
+
     // wait until space is pressed until you swap screens
     // shotFired is turned high when the spacebar is pressed
     while (1) {
+
+        // display a pretty pattern on the LEDs while we wait
+        if (counter % 100000 == 0) {
+            *(ledptr) = ~(*ledptr);
+        }
         if (shotFired) {
+            *(ledptr) = 0x00;
             break;
         }
+
+        counter++;
     }
 
     waitForVSync(); // swap front and back buffers on VGA vertical sync
