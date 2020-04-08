@@ -43,6 +43,10 @@ void drawStartScreen();
 
 void movePlayer(int* playerX, int *playerY, bool* moveLeft, bool* drawLeft, bool* moveRight, bool* drawRight);
 
+void drawShot(bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
+    bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
+    bool* eraseRedSplat);
+
 void displayScoreOnHex3_0(int score);
 
 void waitOnStartScreen();
@@ -144,68 +148,16 @@ int main(void) {
         clearEnemies(enemies_x, enemies_y, enemies_dx);
 
         // move player to new position and draw them
+        // if input from the keyboard
         movePlayer(&playerX, &playerY, &moveLeft, &drawLeft, &moveRight, &drawRight);
 
-        // check if a shot has just been fired
-        if (shotFired) {
-            shotFired = false;	// turn the signal low
-
-            // initialize the shot
-            shotColor = 0xFFFF;
-            shotPositionX = playerX + PLAYER_WIDTH / 2;
-            shotPositionY = playerY - 7;
-
-            // this is extra stuff for testing
-            numShotsFired++;
-            displayScoreOnHex3_0(numShotsFired);
-            printf("%d\n", pixelBufferStart);
-        }
-
-        // check if a shot is in the air
-        if (shotColor != 0x0000) {
-            // clear the old shot
-            drawVerticalLine(shotPositionX, shotPositionY + 4, shotPositionY + 7, 0x0000);
-
-            // move the shot upwards if its not at the top of the screen
-            // or erase the shot by drawing a red splat ontop of it at the top of the screen
-            if (shotPositionY > 10) {
-                // update its position and draw the shot
-                shotPositionY -= 4;
-                drawVerticalLine(shotPositionX, shotPositionY, shotPositionY + 3, shotColor);
-            }
-            else {
-                //erase the shot
-                shotColor = 0x0000;
-                eraseShot = true;   //set this to true so the next frame erases the shot
-
-                //draw the red splat
-                redSplatPositionX = shotPositionX - 4;
-                redSplatPositionY = shotPositionY;
-                drawRedSplat(redSplatPositionX, redSplatPositionY);
-                redSplatFrames = 1;
-            }
-        }
-        else if (eraseShot) {   //enters this on the next frame to draw the red splat over the shot
-            drawRedSplat(redSplatPositionX, redSplatPositionY);
-            eraseShot = false;
-        }
-
-        // check if the red splat is being displayed
-        if (redSplatFrames != 0) {
-            //if its been displayed for 20 frames, erase it
-            if (redSplatFrames > 20) {
-                redSplatFrames = 0;
-                drawBlack(redSplatPositionX, redSplatPositionY, 8, 8);
-                eraseRedSplat = true;   //set this to true for the next frame to erase the red splat
-            }
-            else {
-                redSplatFrames++;
-            }
-        }
-        else if (eraseRedSplat) {
-            drawBlack(redSplatPositionX, redSplatPositionY, 8, 8);
-            eraseRedSplat = false;
-        }
+        
+        // draw the shot if one has been fired
+        // up date its position
+        // draw the red splat when it reaches the top of the screen
+        drawShot(&shotFired, &shotPositionX, &shotPositionY, &numShotsFired,
+            &eraseShot, &redSplatPositionX, &redSplatPositionY, &redSplatFrames,
+            &eraseRedSplat);
 
         //draw the enemies in their current position
         updateEnemies(enemies_x, enemies_y, enemies_dx);
@@ -217,6 +169,71 @@ int main(void) {
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
 
+    }
+}
+
+void drawShot(bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
+    bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
+    bool* eraseRedSplat) {
+
+    if (*shotFired) {
+        *shotFired = false;	// turn the signal low
+
+        // initialize the shot
+        shotColor = 0xFFFF;
+        *shotPositionX = playerX + PLAYER_WIDTH / 2;
+        *shotPositionY = playerY - 7;
+
+        // this is extra stuff for testing
+        (*numShotsFired)++;
+        displayScoreOnHex3_0(*numShotsFired);
+        printf("%d\n", pixelBufferStart);
+    }
+
+    // check if a shot is in the air
+    if (shotColor != 0x0000) {
+        // clear the old shot
+        drawVerticalLine(*shotPositionX, *shotPositionY + 4, *shotPositionY + 7, 0x0000);
+
+        // move the shot upwards if its not at the top of the screen
+        // or erase the shot by drawing a red splat ontop of it at the top of the screen
+        if (*shotPositionY > 10) {
+            // update its position and draw the shot
+            *shotPositionY -= 4;
+            drawVerticalLine(*shotPositionX, *shotPositionY, *shotPositionY + 3, shotColor);
+        }
+        else {
+            //erase the shot
+            shotColor = 0x0000;
+            *eraseShot = true;   //set this to true so the next frame erases the shot
+
+            //draw the red splat
+            *redSplatPositionX = *shotPositionX - 4;
+            *redSplatPositionY = *shotPositionY;
+            drawRedSplat(*redSplatPositionX, *redSplatPositionY);
+            *redSplatFrames = 1;
+        }
+    }
+    else if (*eraseShot) {   //enters this on the next frame to draw the red splat over the shot
+        drawRedSplat(*redSplatPositionX, *redSplatPositionY);
+        *eraseShot = false;
+    }
+
+    // check if the red splat is being displayed
+    if (*redSplatFrames != 0) {
+        //if its been displayed for 20 frames, erase it
+        if (*redSplatFrames > 20) {
+            *redSplatFrames = 0;
+            drawBlack(*redSplatPositionX, *redSplatPositionY, 8, 8);
+            *eraseRedSplat = true;   //set this to true for the next frame to erase the red splat
+        }
+        else {
+            (*redSplatFrames)++;
+        }
+    }
+    else if (*eraseRedSplat) {
+        drawBlack(*redSplatPositionX, *redSplatPositionY, 8, 8);
+        *eraseRedSplat = false;
     }
 }
 
