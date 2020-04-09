@@ -263,6 +263,27 @@ int main(void) {
             break;
         }
 
+        // update the lowestEnemyY to see where to draw the nest shot
+        for (int i = 0; i < 11; ++i) {
+            if (squids_status[i]) {
+                lowestEnemyY = squids_y[i] + 8;
+            }
+        }
+        for (int j = 0; j < 2; ++j) {
+            for (int i = 0; i < 11; ++i) {
+                if (bunnies_status[j][i]) {
+                    lowestEnemyY = squids_y[i] + 8;
+                }
+            }
+        }
+        for (int j = 0; j < 2; ++j) {
+            for (int i = 0; i < 11; ++i) {
+                if (skulls_status[j][i]) {
+                    lowestEnemyY = skulls_y[j][i] + 8;
+                }
+            }
+        }
+
         if (enemyShotPositionY > SCREEN_HEIGHT && !eraseLastEnemyShot) {
             drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, 0x0000);
             eraseLastEnemyShot = true;
