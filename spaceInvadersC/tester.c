@@ -2863,6 +2863,7 @@ void drawGameOverWords(int xInit, int yInit) {
     for (int y = 0; y < 25; ++y) {
         for (int x = 0; x < 237; ++x) {
             plotPixel(xInit + x, yInit + y, gameOverWordsIcon[index]);
+            index++;
         }
     }
 }
