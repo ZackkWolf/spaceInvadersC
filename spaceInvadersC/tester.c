@@ -41,6 +41,12 @@ void drawSpaceIcon(int xInit, int yInit);
 void drawTapToPlayIcon(int xInit, int yInit);
 void drawStartScreen();
 
+void movePlayer(volatile bool* moveLeft, bool* drawLeft, volatile bool* moveRight, bool* drawRight);
+
+void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
+    bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
+    bool* eraseRedSplat);
+
 void displayScoreOnHex3_0(int score);
 
 void waitOnStartScreen();
@@ -53,7 +59,7 @@ const int PLAYER_HEIGHT = 8;
 const int SCREEN_WIDTH = 320; //X
 const int SCREEN_HEIGHT = 240; //Y
 
-int NUM_OF_ENEMIES = 55;
+const int NUM_OF_ENEMIES = 55;
 bool moveEnemiesDown = false;
 int pixelsMovedDown = 0;
 bool drawSprite0 = true;
@@ -140,110 +146,22 @@ int main(void) {
     // put things that happen every frame regardless of user input here
     while (!gameOver) {
         clearEnemies(enemies_x, enemies_y, enemies_dx);
-        if (moveLeft) {
-            moveLeft = false;
-            // draw black on the right of the player to clear their trail
-            drawBlack(playerX + PLAYER_WIDTH - 2, playerY + 3, 4, 5);
 
-            // move the player left
-            (playerX) -= 2;
-            drawPlayer(playerX, playerY);
+        // move player to new position and draw them
+        // if input from the keyboard
+        movePlayer(&moveLeft, &drawLeft, &moveRight, &drawRight);
 
-            drawLeft = true;		// signal to update next screen
-        }
-        else if (drawLeft) {
-            drawLeft = false;
-
-            // draw black on the right of the player to clear their trail
-            drawBlack(playerX + PLAYER_WIDTH, playerY + 3, 2, 5);
-
-            drawPlayer(playerX, playerY);
-        }
-        else if (moveRight) {
-            moveRight = false;
-            // draw black on the left of the player to clear their trail
-            drawBlack(playerX - 2, playerY + 3, 4, 5);
-
-            // move the player right
-            (playerX) += 2;
-            drawPlayer(playerX, playerY);
-
-            drawRight = true;		// signal to update next screen
-        }
-        else if (drawRight) {
-            drawRight = false;
-
-            // draw black on the left of the player to clear their trail
-            drawBlack(playerX - 2, playerY + 3, 2, 5);
-
-            drawPlayer(playerX, playerY);
-        }
-
-        // check if a shot has just been fired
-        if (shotFired) {
-            shotFired = false;	// turn the signal low
-
-            // initialize the shot
-            shotColor = 0xFFFF;
-            shotPositionX = playerX + PLAYER_WIDTH / 2;
-            shotPositionY = playerY - 7;
-
-            // this is extra stuff for testing
-            numShotsFired++;
-            displayScoreOnHex3_0(numShotsFired);
-            printf("%d\n", pixelBufferStart);
-        }
-
-        // check if a shot is in the air
-        if (shotColor != 0x0000) {
-            // clear the old shot
-            drawVerticalLine(shotPositionX, shotPositionY + 4, shotPositionY + 7, 0x0000);
-
-            // move the shot upwards if its not at the top of the screen
-            // or erase the shot by drawing a red splat ontop of it at the top of the screen
-            if (shotPositionY > 10) {
-                // update its position and draw the shot
-                shotPositionY -= 4;
-                drawVerticalLine(shotPositionX, shotPositionY, shotPositionY + 3, shotColor);
-            }
-            else {
-                //erase the shot
-                shotColor = 0x0000;
-                eraseShot = true;   //set this to true so the next frame erases the shot
-
-                //draw the red splat
-                redSplatPositionX = shotPositionX - 4;
-                redSplatPositionY = shotPositionY;
-                drawRedSplat(redSplatPositionX, redSplatPositionY);
-                redSplatFrames = 1;
-            }
-        }
-        else if (eraseShot) {   //enters this on the next frame to draw the red splat over the shot
-            drawRedSplat(redSplatPositionX, redSplatPositionY);
-            eraseShot = false;
-        }
-
-        // check if the red splat is being displayed
-        if (redSplatFrames != 0) {
-            //if its been displayed for 20 frames, erase it
-            if (redSplatFrames > 20) {
-                redSplatFrames = 0;
-                drawBlack(redSplatPositionX, redSplatPositionY, 8, 8);
-                eraseRedSplat = true;   //set this to true for the next frame to erase the red splat
-            }
-            else {
-                redSplatFrames++;
-            }
-        }
-        else if (eraseRedSplat) {
-            drawBlack(redSplatPositionX, redSplatPositionY, 8, 8);
-            eraseRedSplat = false;
-        }
+        
+        // draw the shot if one has been fired
+        // up date its position
+        // draw the red splat when it reaches the top of the screen
+        drawShot(&shotFired, &shotPositionX, &shotPositionY, &numShotsFired,
+            &eraseShot, &redSplatPositionX, &redSplatPositionY, &redSplatFrames,
+            &eraseRedSplat);
 
         //draw the enemies in their current position
         updateEnemies(enemies_x, enemies_y, enemies_dx);
-        if(drawSprite0) drawSprite0 = false;
-        else drawSprite0 = true;
+        drawSprite0 = !drawSprite0;
 
         if(enemies_y[54] > 220) gameOver = true;
 
@@ -251,6 +169,113 @@ int main(void) {
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
 
+    }
+}
+
+void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
+    bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
+    bool* eraseRedSplat) {
+
+    if (*shotFired) {
+        *shotFired = false;	// turn the signal low
+
+        // initialize the shot
+        shotColor = 0xFFFF;
+        *shotPositionX = playerX + PLAYER_WIDTH / 2;
+        *shotPositionY = playerY - 7;
+
+        // this is extra stuff for testing
+        (*numShotsFired)++;
+        displayScoreOnHex3_0(*numShotsFired);
+        printf("%d\n", pixelBufferStart);
+    }
+
+    // check if a shot is in the air
+    if (shotColor != 0x0000) {
+        // clear the old shot
+        drawVerticalLine(*shotPositionX, *shotPositionY + 4, *shotPositionY + 7, 0x0000);
+
+        // move the shot upwards if its not at the top of the screen
+        // or erase the shot by drawing a red splat ontop of it at the top of the screen
+        if (*shotPositionY > 10) {
+            // update its position and draw the shot
+            *shotPositionY -= 4;
+            drawVerticalLine(*shotPositionX, *shotPositionY, *shotPositionY + 3, shotColor);
+        }
+        else {
+            //erase the shot
+            shotColor = 0x0000;
+            *eraseShot = true;   //set this to true so the next frame erases the shot
+
+            //draw the red splat
+            *redSplatPositionX = *shotPositionX - 4;
+            *redSplatPositionY = *shotPositionY;
+            drawRedSplat(*redSplatPositionX, *redSplatPositionY);
+            *redSplatFrames = 1;
+        }
+    }
+    else if (*eraseShot) {   //enters this on the next frame to draw the red splat over the shot
+        drawRedSplat(*redSplatPositionX, *redSplatPositionY);
+        *eraseShot = false;
+    }
+
+    // check if the red splat is being displayed
+    if (*redSplatFrames != 0) {
+        //if its been displayed for 20 frames, erase it
+        if (*redSplatFrames > 20) {
+            *redSplatFrames = 0;
+            drawBlack(*redSplatPositionX, *redSplatPositionY, 8, 8);
+            *eraseRedSplat = true;   //set this to true for the next frame to erase the red splat
+        }
+        else {
+            (*redSplatFrames)++;
+        }
+    }
+    else if (*eraseRedSplat) {
+        drawBlack(*redSplatPositionX, *redSplatPositionY, 8, 8);
+        *eraseRedSplat = false;
+    }
+}
+
+
+void movePlayer(volatile bool *moveLeft, bool* drawLeft, volatile bool* moveRight, bool *drawRight) {
+    if (*moveLeft) {
+        *moveLeft = false;
+        // draw black on the right of the player to clear their trail
+        drawBlack(playerX + PLAYER_WIDTH - 2, playerY + 3, 4, 5);
+
+        // move the player left
+        (playerX) -= 2;
+        drawPlayer(playerX, playerY);
+
+        *drawLeft = true;		// signal to update next screen
+    }
+    else if (*drawLeft) {
+        *drawLeft = false;
+
+        // draw black on the right of the player to clear their trail
+        drawBlack(playerX + PLAYER_WIDTH, playerY + 3, 2, 5);
+
+        drawPlayer(playerX, playerY);
+    }
+    else if (*moveRight) {
+        *moveRight = false;
+        // draw black on the left of the player to clear their trail
+        drawBlack(playerX - 2, playerY + 3, 4, 5);
+
+        // move the player right
+        (playerX) += 2;
+        drawPlayer(playerX, playerY);
+
+        *drawRight = true;		// signal to update next screen
+    }
+    else if (*drawRight) {
+        *drawRight = false;
+
+        // draw black on the left of the player to clear their trail
+        drawBlack(playerX - 2, playerY + 3, 2, 5);
+
+        drawPlayer(playerX, playerY);
     }
 }
 
@@ -271,12 +296,70 @@ void waitOnStartScreen() {
     clearScreen();
     drawPlayer(playerX, playerY);
 
+    int counter = 0;
+    int subCounter = 0;
+
+    volatile int* ledptr = (int*)0xFF200000;
+    *(ledptr) = 0x3FF;
+
+
     // wait until space is pressed until you swap screens
     // shotFired is turned high when the spacebar is pressed
     while (1) {
+        // display a pretty pattern on the LEDs while we wait
+        if (counter % 40000 == 0) {
+            subCounter++;
+            counter = 0;
+
+            if (subCounter < 10) {
+                *(ledptr) = *(ledptr) << 1;
+            }
+            else if (subCounter == 10){
+                *(ledptr) = 0x1FF;
+            }
+            else if (subCounter < 20){
+                *(ledptr) = *(ledptr) >> 1;
+            }
+            else if (subCounter == 20){
+                *(ledptr) = 0x2AA;
+            }
+            else if (subCounter < 30) {
+                *(ledptr) = ~*(ledptr);
+            }
+            else if (subCounter == 30){
+                *(ledptr) = 0x1FE;
+            }
+            else if (subCounter == 31) {
+                *(ledptr) = 0x0FC;
+            }
+            else if (subCounter == 32) {
+                *(ledptr) = 0x078;
+            }
+            else if (subCounter == 33) {
+                *(ledptr) = 0x030;
+            }
+            else if (subCounter == 34) {
+                *(ledptr) = 0x000;
+            }
+            else if (subCounter == 35) {
+                *(ledptr) = 0x2AA;
+            }
+            else if (subCounter < 45) {
+                *(ledptr) = ~*(ledptr);
+            }
+            else {
+                subCounter = 0;
+                *(ledptr) = 0x3FF;
+            }
+            
+        }
+
         if (shotFired) {
+            *(ledptr) = 0x00;
             break;
         }
+
+        counter++;
     }
 
     waitForVSync(); // swap front and back buffers on VGA vertical sync
