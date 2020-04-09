@@ -27,6 +27,16 @@ void drawEnemies(int enemies_x[], int enemies_y[]);
 void updateEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]);
 void drawColour(int xInit, int yInit, int width, int height);
 
+void drawAllEnemies(int skulls_x[2][11], int skulls_y[2][11], int bunnies_x[2][11], int bunnies_y[2][11], int squids_x[], int squids_y[],
+    bool skulls_status[2][11], bool bunnies_status[2][11], bool squids_status[]);
+void updateSkulls(int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]);
+void updateBunnies(int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11]);
+void updateSquids(int squids_x[], int squids_y[], bool squids_status[]);
+
+void clearSkulls(int skulls_x[2][11], int skulls_y[2][11], int skulls_dx);
+void clearBunnies(int bunnies_x[2][11], int bunnies_y[2][11], int bunnies_dx);
+void clearSquids(int squids_x[], int squids_y[], int squids_dx);
+
 void drawPlayer(int xInit, int yInit);
 void drawSquid0(int xInit, int yInit);
 void drawSquid1(int xInit, int yInit);
@@ -44,8 +54,10 @@ void drawStartScreen();
 void movePlayer(volatile bool* moveLeft, bool* drawLeft, volatile bool* moveRight, bool* drawRight);
 
 void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
-              bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
-              bool* eraseRedSplat);
+    bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
+    bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11],
+    int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11],
+    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]);
 
 void displayScoreOnHex3_0(int score);
 
@@ -62,7 +74,17 @@ const int SCREEN_HEIGHT = 240; //Y
 const int NUM_OF_ENEMIES = 55;
 bool moveEnemiesDown = false;
 int pixelsMovedDown = 0;
-bool drawSprite0 = true;
+bool drawSkullSprite0 = true;
+bool drawBunnySprite0 = true;
+bool drawSquidSprite0 = true;
+
+bool moveSkullsDown = false;
+bool moveBunniesDown = false;
+bool moveSquidsDown = false;
+
+int squids_dx = 1;
+int bunnies_dx = 1;
+int skulls_dx = 1;
 
 volatile int pixelBufferStart; // global variable
 
@@ -81,37 +103,39 @@ const int playerY = 240 - 20;
 
 
 int main(void) {
-    int enemies_x[NUM_OF_ENEMIES];
-    int enemies_y[NUM_OF_ENEMIES];
-    int enemies_dx[NUM_OF_ENEMIES/1];
-
     //initialize enemy positions
-    int counter = 0;
-    int row = 0;
-    for(int i = 0; i < NUM_OF_ENEMIES; ++i){
-        counter++;
-        int index = i - row*11;
-        if(i < 11){
-            enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 70 + ((8 * index) + (index * 10));
-        } else if(i > 10 && i < 22){
-            enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 69 + ((8 * index) + (index * 10));
-        } else if(i > 21 && i < 33){
-            enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 69 + ((8 * index) + (index * 10));
-        } else if(i > 32 && i < 44){
-            enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 69 + ((8 * index) + (index * 10));
-        } else if(i > 43 && i < 55){
-            enemies_y[i] = 20 + row*12;
-            enemies_x[i] = 69 + ((8 * index) + (index * 10));
+
+    int skulls_x[2][11];
+    int skulls_y[2][11];
+    int bunnies_x[2][11];
+    int bunnies_y[2][11];
+    int squids_x[11];
+    int squids_y[11];
+
+    //true = alive, false = dead
+    bool skulls_status[2][11];
+    bool bunnies_status[2][11];
+    bool squids_status[11];
+
+    for (int i = 0; i < 11; ++i) {
+        squids_x[i] = 70 + ((8 * i) + (i * 10));
+        squids_y[i] = 20;
+        squids_status[i] = true;
+    }
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 11; ++i) {
+            int row = j + 1;
+            bunnies_x[j][i] = 69 + ((8 * i) + (i * 10));
+            bunnies_y[j][i] = 20 + row * 12;
+            bunnies_status[j][i] = true;
         }
-        if (counter == 11){
-            row++;
-            int dxIndex = row - 1;
-            enemies_dx[dxIndex] = 1;
-            counter = 0;
+    }
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 11; ++i) {
+            int row = j + 3;
+            skulls_x[j][i] = 69 + ((8 * i) + (i * 10));
+            skulls_y[j][i] = 20 + row * 12;
+            skulls_status[j][i] = true;
         }
     }
 
@@ -138,14 +162,64 @@ int main(void) {
     // draw the next screen
     clearScreen();
     drawPlayer(playerX, playerY);
-    drawEnemies(enemies_x, enemies_y);
-    drawSprite0 = false;
+    drawAllEnemies(skulls_x, skulls_y, bunnies_x, bunnies_y, squids_x, squids_y, skulls_status, bunnies_status, squids_status);
+    drawSkullSprite0 = false;
+    drawBunnySprite0 = false;
+    drawSquidSprite0 = false;
 
     volatile int* pixelCtrlPtr = (int*)0xFF203020;
 
     // put things that happen every frame regardless of user input here
+    int loopCounter = 0;
+    bool justDraw = true;
+    bool moveSkulls = false;
+    bool moveBunnies = false;
+    bool moveSquids = false;
     while (!gameOver) {
-        clearEnemies(enemies_x, enemies_y, enemies_dx);
+        if (loopCounter == 2) {
+            loopCounter = 0;
+            justDraw = false;
+            if (!moveSkulls && !moveBunnies && !moveSquids) {
+                moveSkulls = true;
+            }
+        }
+        clearSkulls(skulls_x, skulls_y, skulls_dx);
+        clearBunnies(bunnies_x, bunnies_y, bunnies_dx);
+        clearSquids(squids_x, squids_y, squids_dx);
+
+        //draw the enemies in their current position
+        if (justDraw) {
+            drawAllEnemies(skulls_x, skulls_y, bunnies_x, bunnies_y, squids_x, squids_y, skulls_status, bunnies_status, squids_status);
+            //            printf("draw\n");
+            loopCounter++;
+            //            printf("%d\n", loopCounter);
+        }
+        else if (moveSkulls) {
+            updateSkulls(skulls_x, skulls_y, skulls_status);
+            //            printf("update skulls\n");
+            if (drawSkullSprite0) drawSkullSprite0 = false;
+            else drawSkullSprite0 = true;
+            moveBunnies = true;
+            moveSkulls = false;
+            justDraw = true;
+        }
+        else if (moveBunnies) {
+            updateBunnies(bunnies_x, bunnies_y, bunnies_status);
+            //            printf("update bunnies\n");
+            if (drawBunnySprite0) drawBunnySprite0 = false;
+            else drawBunnySprite0 = true;
+            moveSquids = true;
+            moveBunnies = false;
+            justDraw = true;
+        }
+        else if (moveSquids) {
+            updateSquids(squids_x, squids_y, squids_status);
+            //            printf("update squids\n");
+            if (drawSquidSprite0) drawSquidSprite0 = false;
+            else drawSquidSprite0 = true;
+            moveSquids = false;
+            justDraw = true;
+        }
 
         // move player to new position and draw them
         // if input from the keyboard
@@ -157,13 +231,9 @@ int main(void) {
         // draw the red splat when it reaches the top of the screen
         drawShot(&shotFired, &shotPositionX, &shotPositionY, &numShotsFired,
                  &eraseShot, &redSplatPositionX, &redSplatPositionY, &redSplatFrames,
-                 &eraseRedSplat);
-
-        //draw the enemies in their current position
-        updateEnemies(enemies_x, enemies_y, enemies_dx);
-        drawSprite0 = !drawSprite0;
-
-        if(enemies_y[54] > 220) gameOver = true;
+                 &eraseRedSplat, squids_x, squids_y, squids_status,
+                 bunnies_x, bunnies_y, bunnies_status,
+                 skulls_x, skulls_y, skulls_status);
 
         // swap buffers
         waitForVSync(); // swap front and back buffers on VGA vertical sync
@@ -174,7 +244,9 @@ int main(void) {
 
 void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
               bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
-              bool* eraseRedSplat) {
+              bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11], 
+              int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11], 
+              int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]) {
 
     if (*shotFired) {
         *shotFired = false;	// turn the signal low
@@ -198,6 +270,74 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
         // move the shot upwards if its not at the top of the screen
         // or erase the shot by drawing a red splat ontop of it at the top of the screen
         if (*shotPositionY > 10) {
+            //check if shot hits enemies
+
+            for (int i = 0; i < 11; ++i) {
+                if (*shotPositionX > squids_x[i] &&
+                        *shotPositionX < (squids_x[i] + 8) &&
+                        *shotPositionY < (squids_y[i] + 8) &&
+                        *shotPositionY > squids_y[i] &&
+                        squids_status[i]) {
+
+                    printf("here\n");
+                    shotColor = 0x0000;
+                    *eraseShot = true;   //set this to true so the next frame erases the shot
+
+                    //draw the red splat
+                    *redSplatPositionX = *shotPositionX - 4;
+                    *redSplatPositionY = *shotPositionY - 4;
+                    drawRedSplat(*redSplatPositionX, *redSplatPositionY);
+                    *redSplatFrames = 1;
+
+                    squids_status[i] = false;
+                }
+            }
+            for (int j = 0; j < 2; ++j) {
+                for (int i = 0; i < 11; ++i) {
+                    if (*shotPositionX > bunnies_x[j][i] &&
+                            *shotPositionX < (bunnies_x[j][i] + 11) &&
+                            *shotPositionY < (bunnies_y[j][i] + 8) && 
+                            *shotPositionY > bunnies_y[j][i] && 
+                            bunnies_status[j][i]) {
+
+                        printf("here\n");
+                        shotColor = 0x0000;
+                        *eraseShot = true;   //set this to true so the next frame erases the shot
+
+                        //draw the red splat
+                        *redSplatPositionX = *shotPositionX - 4;
+                        *redSplatPositionY = *shotPositionY - 4;
+                        drawRedSplat(*redSplatPositionX, *redSplatPositionY);
+                        *redSplatFrames = 1;
+
+                        bunnies_status[j][i] = false;
+                    }
+                }
+            }
+            for (int j = 0; j < 2; ++j) {
+                for (int i = 0; i < 11; ++i) {
+                    if (*shotPositionX > skulls_x[j][i] &&
+                            *shotPositionX < (skulls_x[j][i] + 12) &&
+                            *shotPositionY < (skulls_y[j][i] + 8) &&
+                            *shotPositionY > skulls_y[j][i] &&
+                            skulls_status[j][i]) {
+
+                        printf("here\n");
+                        shotColor = 0x0000;
+                        *eraseShot = true;   //set this to true so the next frame erases the shot
+
+                        //draw the red splat
+                        *redSplatPositionX = *shotPositionX - 4;
+                        *redSplatPositionY = *shotPositionY - 4;
+                        drawRedSplat(*redSplatPositionX, *redSplatPositionY);
+                        *redSplatFrames = 1;
+
+                        skulls_status[j][i] = false;
+                    }
+                }
+            }
+
+
             // update its position and draw the shot
             *shotPositionY -= 4;
             drawVerticalLine(*shotPositionX, *shotPositionY, *shotPositionY + 3, shotColor);
@@ -518,171 +658,182 @@ void drawColour(int xInit, int yInit, int width, int height) {
     }
 }
 
-void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
-    for(int i = 0; i < NUM_OF_ENEMIES; ++i){
-        if(i < 11){
-            if(moveEnemiesDown){
-                if(enemies_dx[0] == 1){ //was moving left, going to move right
-                    drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
-                } else { //was moving right, going to move left
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 4, 10);
+void clearSkulls(int skulls_x[2][11], int skulls_y[2][11], int skulls_dx) {
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 11; ++i) {
+            if (moveSkullsDown) {
+                if (skulls_dx == 1) { //was moving left, going to move right
+                    drawBlack(skulls_x[j][i] + 12, skulls_y[j][i] - 2, 2, 10);
                 }
-                drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 4);
-            } else {
-                if(enemies_x[10] + 2 >= 273){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 47){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 12, 2);
-                }
-                if (enemies_dx[0] == 1) { //moving right
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-1, 12, 10);
-                } else { //moving left
-                    drawBlack(enemies_x[i] + 4, enemies_y[i]-1, 8, 10);
+                else {
+                    drawBlack(skulls_x[j][i] - 2, skulls_y[j][i] - 2, 2, 10);
                 }
             }
-        } else if(i > 10 && i < 22){
-            if(moveEnemiesDown){
-                if(enemies_dx[0] == 1){ //was moving left, going to move right
-                    drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
-                } else {
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 4, 10);
+            else {
+                if (skulls_x[0][10] + 2 >= 273) {
+                    drawBlack(skulls_x[j][i] - 2, skulls_y[j][i] - 12, 14, 10);
                 }
-                drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
-            } else {
-                if(enemies_x[10] + 2 >= 273){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 47){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
+                else if (skulls_x[0][0] - 2 <= 47) {
+                    drawBlack(skulls_x[j][i] - 2, skulls_y[j][i] - 12, 14, 10);
                 }
-                if (enemies_dx[0] == 1) { //moving right
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 12, 10);
-                } else { //moving left
-                    drawBlack(enemies_x[i] + 3, enemies_y[i]-2, 12, 10);
+                if (skulls_dx == 1) { //moving right
+                    drawBlack(skulls_x[j][i] - 2, skulls_y[j][i] - 2, 2, 10);
                 }
-            }
-        } else if(i > 21 && i < 33){
-            if(moveEnemiesDown){
-                if(enemies_dx[0] == 1){ //was moving left, going to move right
-                    drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
-                } else {
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 4, 10);
-                }
-                drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
-            } else {
-                if(enemies_x[10] + 2 >= 273){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 47){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
-                }
-                if (enemies_dx[0] == 1) { //moving right
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 12, 10);
-                } else { //moving left
-                    drawBlack(enemies_x[i] + 3, enemies_y[i]-2, 12, 10);
-                }
-            }
-        }  else if(i > 32 && i < 44){
-            if(moveEnemiesDown){
-                if(enemies_dx[0] == 1){ //was moving left, going to move right
-                    drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
-                } else {
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 4, 10);
-                }
-                drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
-            } else {
-                if(enemies_x[10] + 2 >= 273){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 47){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
-                }
-                if (enemies_dx[0] == 1) { //moving right
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 12, 10);
-                } else { //moving left
-                    drawBlack(enemies_x[i] + 4, enemies_y[i]-2, 12, 10);
-                }
-            }
-        } else if(i > 43 && i < 55){
-            if(moveEnemiesDown){
-                if(enemies_dx[0] == 1){ //was moving left, going to move right
-                    drawBlack(enemies_x[i] + 8, enemies_y[i]-2, 8, 10);
-                } else {
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 4, 10);
-                }
-                drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
-            } else {
-                if(enemies_x[10] + 2 >= 273){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 4, 12, 6);
-                } else if(enemies_x[0] - 2 <= 47){
-                    drawBlack(enemies_x[i]-2, enemies_y[i] - 2, 14, 2);
-                }
-                if (enemies_dx[0] == 1) { //moving right
-                    drawBlack(enemies_x[i] - 2, enemies_y[i]-2, 12, 10);
-                } else { //moving left
-                    drawBlack(enemies_x[i] + 4, enemies_y[i]-2, 12, 10);
+                else { //moving left
+                    drawBlack(skulls_x[j][i] + 12, skulls_y[j][i] - 2, 2, 10);
                 }
             }
         }
     }
 }
 
-void updateEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]){
-    int dxIndex = 0;
-    int counter = 0;
-    for(int i = 0; i < NUM_OF_ENEMIES; ++i){
-        counter++;
-        if(i < 11){
-            if(drawSprite0) drawSquid0(enemies_x[i], enemies_y[i]);
-            else drawSquid1(enemies_x[i], enemies_y[i]);
-        } else if(i > 10 && i < 22){
-            if(drawSprite0) drawBunny0(enemies_x[i], enemies_y[i]);
-            else drawBunny1(enemies_x[i], enemies_y[i]);
-        } else if(i > 21 && i < 33){
-            if(drawSprite0) drawBunny0(enemies_x[i], enemies_y[i]);
-            else drawBunny1(enemies_x[i], enemies_y[i]);
-        } else if(i > 32 && i < 44){
-            if(drawSprite0) drawSkull0(enemies_x[i], enemies_y[i]);
-            else drawSkull1(enemies_x[i], enemies_y[i]);
-        } else if(i > 43 && i < 55){
-            if(drawSprite0) drawSkull0(enemies_x[i], enemies_y[i]);
-            else drawSkull1(enemies_x[i], enemies_y[i]);
-        }
-
-        if(moveEnemiesDown == false) {
-            enemies_x[i] += enemies_dx[dxIndex];
-
-            if (counter == 11) { //i % 11 == 0 so move onto next row
-                dxIndex++;
-                counter = 0;
+void clearBunnies(int bunnies_x[2][11], int bunnies_y[2][11], int bunnies_dx) {
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 11; ++i) {
+            if (moveBunniesDown) {
+                if (bunnies_dx == 1) { //was moving left, going to move right
+                    drawBlack(bunnies_x[j][i] + 11, bunnies_y[j][i] - 1, 2, 10);
+                }
+                else { //was moving right, going to move left
+                    drawBlack(bunnies_x[j][i] - 2, bunnies_y[j][i] - 1, 2, 10);
+                }
             }
-        } else{
-            enemies_y[i] += 1;
+            else {
+                if (bunnies_x[0][10] + 2 >= 273) {
+                    drawBlack(bunnies_x[j][i] - 2, bunnies_y[j][i] - 12, 14, 10);
+                }
+                else if (bunnies_x[0][0] - 2 <= 47) {
+                    drawBlack(bunnies_x[j][i] - 2, bunnies_y[j][i] - 12, 14, 10);
+                }
+                if (bunnies_dx == 1) { //moving right
+                    drawBlack(bunnies_x[j][i] - 2, bunnies_y[j][i] - 1, 2, 10);
+                }
+                else { //moving left
+                    drawBlack(bunnies_x[j][i] + 11, bunnies_y[j][i] - 1, 2, 10);
+                }
+            }
         }
-    }
-    if (enemies_x[10] + 2 >= 273) {
-        enemies_dx[0] = -1;
-        enemies_dx[1] = -1;
-        enemies_dx[2] = -1;
-        enemies_dx[3] = -1;
-        enemies_dx[4] = -1;
-
-    } else if (enemies_x[0] - 2 <= 47) {
-        enemies_dx[0] = 1;
-        enemies_dx[1] = 1;
-        enemies_dx[2] = 1;
-        enemies_dx[3] = 1;
-        enemies_dx[4] = 1;
-    }
-
-    if(moveEnemiesDown == true && pixelsMovedDown < 12){
-        pixelsMovedDown++;
-    }else if(pixelsMovedDown >= 12){
-        moveEnemiesDown = false;
-        pixelsMovedDown = 0;
-    } else if (enemies_x[10] + 2 >= 273) {
-        moveEnemiesDown = true;
-    } else if (enemies_x[0] - 2 <= 47) {
-        moveEnemiesDown = true;
     }
 }
+
+void clearSquids(int squids_x[], int squids_y[], int squids_dx) {
+    for (int i = 0; i < 11; ++i) {
+        if (moveSquidsDown) {
+            if (squids_dx == 1) { //was moving left, going to move right
+                drawBlack(squids_x[i] + 8, squids_y[i] - 1, 2, 10);
+            }
+            else { //was moving right, going to move left
+                drawBlack(squids_x[i] - 2, squids_y[i] - 1, 2, 10);
+            }
+        }
+        else {
+            if (squids_x[10] + 2 >= 273) {
+                drawBlack(squids_x[i] - 2, squids_y[i] - 12, 10, 8);
+            }
+            else if (squids_x[0] - 2 <= 47) {
+                drawBlack(squids_x[i] - 2, squids_y[i] - 12, 10, 8);
+            }
+            if (squids_dx == 1) { //moving right
+                drawBlack(squids_x[i] - 2, squids_y[i] - 1, 2, 10);
+            }
+            else { //moving left
+                drawBlack(squids_x[i] + 8, squids_y[i] - 1, 2, 10);
+            }
+        }
+    }
+}
+
+void updateSkulls(int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]) {
+    bool justMovedDown = false;
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 11; ++i) {
+            if (skulls_status[j][i]) {
+                if (drawSkullSprite0) drawSkull0(skulls_x[j][i], skulls_y[j][i]);
+                else drawSkull1(skulls_x[j][i], skulls_y[j][i]);
+            }
+
+            if (moveSkullsDown == false) {
+                skulls_x[j][i] += skulls_dx;
+            }
+            else {
+                skulls_y[j][i] += 12;
+            }
+        }
+    }
+    if (moveSkullsDown) {
+        moveSkullsDown = false;
+        justMovedDown = true;
+    }
+    if (skulls_x[0][10] + 2 >= 273 && !justMovedDown) {
+        skulls_dx = -1;
+        moveSkullsDown = true;
+    }
+    else if (skulls_x[0][0] - 2 <= 47 && !justMovedDown) {
+        skulls_dx = 1;
+        moveSkullsDown = true;
+    }
+}
+
+void updateBunnies(int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11]) {
+    bool justMovedDown = false;
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 11; ++i) {
+            if (bunnies_status[j][i]) {
+                if (drawBunnySprite0) drawBunny0(bunnies_x[j][i], bunnies_y[j][i]);
+                else drawBunny1(bunnies_x[j][i], bunnies_y[j][i]);
+            }
+
+            if (moveBunniesDown == false) {
+                bunnies_x[j][i] += bunnies_dx;
+            }
+            else {
+                bunnies_y[j][i] += 12;
+            }
+        }
+    }
+    if (moveBunniesDown) {
+        moveBunniesDown = false;
+        justMovedDown = true;
+    }
+    if (bunnies_x[0][10] + 2 >= 273 && !justMovedDown) {
+        bunnies_dx = -1;
+        moveBunniesDown = true;
+    }
+    else if (bunnies_x[0][0] - 2 <= 47 && !justMovedDown) {
+        bunnies_dx = 1;
+        moveBunniesDown = true;
+    }
+}
+
+void updateSquids(int squids_x[], int squids_y[], bool squids_status[]) {
+    bool justMovedDown = false;
+    for (int i = 0; i < 11; ++i) {
+        if (squids_status[i]) {
+            if (drawSquidSprite0) drawSquid0(squids_x[i], squids_y[i]);
+            else drawSquid1(squids_x[i], squids_y[i]);
+        }
+
+        if (moveSquidsDown == false) {
+            squids_x[i] += squids_dx;
+        }
+        else {
+            squids_y[i] += 12;
+        }
+    }
+    if (moveSquidsDown) {
+        moveSquidsDown = false;
+        justMovedDown = true;
+    }
+    if (squids_x[10] + 2 >= 273 && !justMovedDown) {
+        squids_dx = -1;
+        moveSquidsDown = true;
+    }
+    else if (squids_x[0] - 2 <= 47 && !justMovedDown) {
+        squids_dx = 1;
+        moveSquidsDown = true;
+    }
+}
+
 
 /* setup the PS2 interrupts in the FPGA */
 void config_PS2(void) {
@@ -1343,23 +1494,28 @@ void drawPlayer(int xInit, int yInit) {
     }
 }
 
-void drawEnemies(int enemies_x[], int enemies_y[]){
-    for(int i = 0; i < NUM_OF_ENEMIES; ++i){
-        if(i < 11){
-            if(drawSprite0) drawSquid0(enemies_x[i], enemies_y[i]);
-            else drawSquid1(enemies_x[i], enemies_y[i]);
-        } else if(i > 10 && i < 22){
-            if(drawSprite0) drawBunny0(enemies_x[i], enemies_y[i]);
-            else drawBunny1(enemies_x[i], enemies_y[i]);
-        } else if(i > 21 && i < 33){
-            if(drawSprite0) drawBunny0(enemies_x[i], enemies_y[i]);
-            else drawBunny1(enemies_x[i], enemies_y[i]);
-        } else if(i > 32 && i < 44){
-            if(drawSprite0) drawSkull0(enemies_x[i], enemies_y[i]);
-            else drawSkull1(enemies_x[i], enemies_y[i]);
-        } else if(i > 43 && i < 55){
-            if(drawSprite0) drawSkull0(enemies_x[i], enemies_y[i]);
-            else drawSkull1(enemies_x[i], enemies_y[i]);
+void drawAllEnemies(int skulls_x[2][11], int skulls_y[2][11], int bunnies_x[2][11], int bunnies_y[2][11], int squids_x[], int squids_y[],
+    bool skulls_status[2][11], bool bunnies_status[2][11], bool squids_status[]) {
+    for (int i = 0; i < 11; ++i) {
+        if (squids_status[i]) {
+            if (drawSquidSprite0) drawSquid0(squids_x[i], squids_y[i]);
+            else drawSquid1(squids_x[i], squids_y[i]);
+        }
+    }
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 11; ++i) {
+            if (bunnies_status[j][i]) {
+                if (drawBunnySprite0) drawBunny0(bunnies_x[j][i], bunnies_y[j][i]);
+                else drawBunny1(bunnies_x[j][i], bunnies_y[j][i]);
+            }
+        }
+    }
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 11; ++i) {
+            if (skulls_status[j][i]) {
+                if (drawSkullSprite0) drawSkull0(skulls_x[j][i], skulls_y[j][i]);
+                else drawSkull1(skulls_x[j][i], skulls_y[j][i]);
+            }
         }
     }
 }
