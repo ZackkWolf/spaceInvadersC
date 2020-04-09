@@ -53,7 +53,7 @@ void drawStartScreen();
 
 void movePlayer(volatile bool* moveLeft, bool* drawLeft, volatile bool* moveRight, bool* drawRight);
 
-void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
+void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* score,
     bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
     bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11],
     int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11],
@@ -143,7 +143,7 @@ int main(void) {
     int shotPositionY = SCREEN_HEIGHT / 2;
     bool eraseShot = false; // this variables keeps track of if you need to erase the shot on the next frame
 
-    int numShotsFired = 0;
+    int score = 0;
 
     int redSplatPositionX;
     int redSplatPositionY;
@@ -155,7 +155,7 @@ int main(void) {
 
     setUpInterrupts();
 
-    displayScoreOnHex3_0(0); // reset score on HEX
+    displayScoreOnHex3_0(score); // reset score on HEX
 
     waitOnStartScreen();
 
@@ -229,7 +229,7 @@ int main(void) {
         // draw the shot if one has been fired
         // up date its position
         // draw the red splat when it reaches the top of the screen
-        drawShot(&shotFired, &shotPositionX, &shotPositionY, &numShotsFired,
+        drawShot(&shotFired, &shotPositionX, &shotPositionY, &score,
                  &eraseShot, &redSplatPositionX, &redSplatPositionY, &redSplatFrames,
                  &eraseRedSplat, squids_x, squids_y, squids_status,
                  bunnies_x, bunnies_y, bunnies_status,
@@ -242,7 +242,7 @@ int main(void) {
     }
 }
 
-void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* numShotsFired,
+void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* score,
               bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
               bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11], 
               int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11], 
@@ -256,9 +256,6 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
         *shotPositionX = playerX + PLAYER_WIDTH / 2;
         *shotPositionY = playerY - 7;
 
-        // this is extra stuff for testing
-        (*numShotsFired)++;
-        displayScoreOnHex3_0(*numShotsFired);
         printf("%d\n", pixelBufferStart);
     }
 
@@ -290,6 +287,10 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                     *redSplatFrames = 1;
 
                     squids_status[i] = false;
+
+                    //up the score and display it on the HEX
+                    (*score)++;
+                    displayScoreOnHex3_0(*score);
                 }
             }
             for (int j = 0; j < 2; ++j) {
@@ -311,6 +312,10 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                         *redSplatFrames = 1;
 
                         bunnies_status[j][i] = false;
+
+                        //up the score and display it on the HEX
+                        (*score)++;
+                        displayScoreOnHex3_0(*score);
                     }
                 }
             }
@@ -333,6 +338,10 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                         *redSplatFrames = 1;
 
                         skulls_status[j][i] = false;
+
+                        //up the score and display it on the HEX
+                        (*score)++;
+                        displayScoreOnHex3_0(*score);
                     }
                 }
             }
