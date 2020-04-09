@@ -95,6 +95,9 @@ char byte1 = 0, byte2 = 0, byte3 = 0;
 volatile bool shotFired = false;
 short int shotColor = 0x0000;
 
+bool enemyShotFired = false;
+short int enemyShotColor = 0x4FE0;
+
 volatile bool moveLeft = false;
 volatile bool moveRight = false;
 
@@ -139,9 +142,16 @@ int main(void) {
         }
     }
 
+    int lowestEnemyY = skulls_y[1][0] + 8; // 8 is the height of the icon
+
     int shotPositionX = SCREEN_WIDTH;
     int shotPositionY = SCREEN_HEIGHT / 2;
     bool eraseShot = false; // this variables keeps track of if you need to erase the shot on the next frame
+
+    int enemyShotPositionX = SCREEN_WIDTH / 2;
+    int enemyShotPositionY = SCREEN_HEIGHT / 2;
+    bool eraseEnemyShot = false;
+    bool eraseLastEnemyShot = false;
 
     int score = 0;
 
@@ -175,6 +185,7 @@ int main(void) {
     bool moveSkulls = false;
     bool moveBunnies = false;
     bool moveSquids = false;
+
     while (!gameOver) {
         if (loopCounter == 2) {
             loopCounter = 0;
@@ -235,6 +246,40 @@ int main(void) {
                  bunnies_x, bunnies_y, bunnies_status,
                  skulls_x, skulls_y, skulls_status);
 
+        
+        
+        if (eraseEnemyShot) {
+            drawVerticalLine(enemyShotPositionX, enemyShotPositionY - 5, enemyShotPositionY, 0x0000);
+            eraseEnemyShot = false;
+        }
+        else if (!eraseEnemyShot) {
+            drawVerticalLine(enemyShotPositionX, enemyShotPositionY - 4, enemyShotPositionY  - 1, 0x0000);
+            eraseEnemyShot = true;
+        }
+
+        if (enemyShotPositionY == playerY &&
+            enemyShotPositionX >= playerX &&
+            enemyShotPositionX <= playerX + PLAYER_WIDTH) {
+            break;
+        }
+
+        if (enemyShotPositionY > SCREEN_HEIGHT && !eraseLastEnemyShot) {
+            drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, 0x0000);
+            eraseLastEnemyShot = true;
+        }
+        else if (eraseLastEnemyShot)
+        {
+            drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, 0x0000);
+            eraseLastEnemyShot = false;
+            enemyShotPositionY = lowestEnemyY;
+        }
+
+        if (!eraseLastEnemyShot) {
+            enemyShotPositionY += 4;
+            drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, enemyShotColor);
+        }
+            
+        
         // swap buffers
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
