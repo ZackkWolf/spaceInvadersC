@@ -186,6 +186,8 @@ int main(void) {
     bool moveBunnies = false;
     bool moveSquids = false;
 
+    int counter = 0;
+
     while (!gameOver) {
         if (loopCounter == 2) {
             loopCounter = 0;
@@ -263,27 +265,38 @@ int main(void) {
             break;
         }
 
+        int squidsExistRow = -1;
+        int bunniesExistRow = -1;
+        int skullsExistRow = -1;
+
         // update the lowestEnemyY to see where to draw the nest shot
         for (int i = 0; i < 11; ++i) {
             if (squids_status[i]) {
                 lowestEnemyY = squids_y[i] + 8;
+                squidsExistRow = 0;
+                break;
             }
         }
-        for (int j = 0; j < 2; ++j) {
+        for (int j = 1; j >= 0; ++j) {
             for (int i = 0; i < 11; ++i) {
                 if (bunnies_status[j][i]) {
-                    lowestEnemyY = squids_y[i] + 8;
+                    lowestEnemyY = bunnies_y[i][j] + 8;
+                    bunniesExistRow = j;
+                    break;
                 }
             }
         }
-        for (int j = 0; j < 2; ++j) {
+        for (int j = 1; j >= 0; ++j) {
             for (int i = 0; i < 11; ++i) {
                 if (skulls_status[j][i]) {
                     lowestEnemyY = skulls_y[j][i] + 8;
+                    skullsExistRow = j;
+                    break;
                 }
             }
         }
 
+        
         if (enemyShotPositionY > SCREEN_HEIGHT && !eraseLastEnemyShot) {
             drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, 0x0000);
             eraseLastEnemyShot = true;
@@ -293,7 +306,47 @@ int main(void) {
             drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, 0x0000);
             eraseLastEnemyShot = false;
             enemyShotPositionY = lowestEnemyY;
-        }
+
+            // update the shotPositionX
+
+            // first find the possible X positions and store them in an array
+            int possibleEnemyShotPositionX[11] = { 0 };
+
+            if (skullsExistRow != -1) {
+                for (int i = 0; i < 11; ++i) {
+                    if (skulls_status[skullsExistRow][i]) {
+                        possibleEnemyShotPositionX[i] = skulls_x[skullsExistRow][i] + 6; // 6 is half the width of the skull icon
+                    }
+                }
+            }
+            else if (bunniesExistRow != -1) {
+                for (int i = 0; i < 11; ++i) {
+                    if (bunnies_status[bunniesExistRow][i]) {
+                        possibleEnemyShotPositionX[i] = bunnies_x[bunniesExistRow][i] + 6; // 5 is half the width of the skull icon
+                    }
+                }
+            }
+            else if (squidsExistRow != -1) {
+                for (int i = 0; i < 11; ++i) {
+                    if (squids_status[i]) {
+                        possibleEnemyShotPositionX[i] = squids_x[i] + 4; // 4 is half the width of the skull icon
+                    }
+                }
+            }
+
+			enemyShotPositionX = 0;
+
+			for (int i = counter % 11; i < 11; ++i) {
+				enemyShotPositionX = possibleEnemyShotPositionX[i];
+                printf("%d\n", enemyShotPositionX);
+                if (enemyShotPositionX != 0) {
+                    /*printf("%d\n", enemyShotPositionX);*/
+                    break;
+                }
+				if (i == 10) i = 0;
+				if (counter > 10000000) counter = 0;
+			}
+		}
 
         if (!eraseLastEnemyShot) {
             enemyShotPositionY += 4;
@@ -304,7 +357,7 @@ int main(void) {
         // swap buffers
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
-
+        counter++;
     }
 }
 
@@ -322,7 +375,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
         *shotPositionX = playerX + PLAYER_WIDTH / 2;
         *shotPositionY = playerY - 7;
 
-        printf("%d\n", pixelBufferStart);
+        //printf("%d\n", pixelBufferStart);
     }
 
     // check if a shot is in the air
@@ -342,7 +395,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                         *shotPositionY > squids_y[i] &&
                         squids_status[i]) {
 
-                    printf("here\n");
+                    //printf("here\n");
                     shotColor = 0x0000;
                     *eraseShot = true;   //set this to true so the next frame erases the shot
 
@@ -367,7 +420,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                             *shotPositionY > bunnies_y[j][i] && 
                             bunnies_status[j][i]) {
 
-                        printf("here\n");
+                        //printf("here\n");
                         shotColor = 0x0000;
                         *eraseShot = true;   //set this to true so the next frame erases the shot
 
@@ -393,7 +446,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                             *shotPositionY > skulls_y[j][i] &&
                             skulls_status[j][i]) {
 
-                        printf("here\n");
+                        //printf("here\n");
                         shotColor = 0x0000;
                         *eraseShot = true;   //set this to true so the next frame erases the shot
 
