@@ -38,6 +38,7 @@ void clearBunnies(int bunnies_x[2][11], int bunnies_y[2][11], int bunnies_dx);
 void clearSquids(int squids_x[], int squids_y[], int squids_dx);
 
 void drawPlayer(int xInit, int yInit);
+void drawPlayerExplosion(int xInit, int yInit);
 void drawSquid0(int xInit, int yInit);
 void drawSquid1(int xInit, int yInit);
 void drawBunny0(int xInit, int yInit);
@@ -60,6 +61,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
     int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]);
 
 void displayScoreOnHex3_0(int score);
+void displayBitsOnLED(int num);
 
 void waitOnStartScreen();
 
@@ -187,6 +189,8 @@ int main(void) {
     bool moveSquids = false;
 
     int counter = 0;
+    int lives = 0b111;
+    displayBitsOnLED(lives);
 
     while (!gameOver) {
         if (loopCounter == 2) {
@@ -262,7 +266,71 @@ int main(void) {
         if (enemyShotPositionY == playerY &&
             enemyShotPositionX >= playerX &&
             enemyShotPositionX <= playerX + PLAYER_WIDTH) {
-            break;
+
+            // draw explosion
+            drawPlayerExplosion(playerX, playerY);
+
+            // swap buffer
+            waitForVSync(); // swap front and back buffers on VGA vertical sync
+            pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+
+            // draw explosion
+            drawPlayerExplosion(playerX, playerY);
+
+            // swap buffer
+            waitForVSync(); // swap front and back buffers on VGA vertical sync
+            pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+
+            // flash the LEDs
+            volatile int* ledptr = (int*)0xFF200000;
+
+			for (int subCounter = 0; subCounter < 10; subCounter++) {
+				int i = 0;
+				while (i != 300000) {
+					i++;
+				}
+				if (subCounter != 0) {
+					*(ledptr) = ~*(ledptr);
+				}
+				else {
+					*(ledptr) = 0x2AA;
+				}
+			}
+            
+
+
+            if (lives == 0b001) {
+                lives = 0x000;
+                displayBitsOnLED(lives);
+
+                // draw game over screen here
+                break;
+            }
+            else if (lives == 0b011) {
+                lives = 0x001;
+                displayBitsOnLED(lives);
+            }
+            else {
+                lives = 0x003;
+                displayBitsOnLED(lives);
+            }
+
+            // draw player
+            drawBlack(playerX, playerY, PLAYER_WIDTH + 5, PLAYER_HEIGHT + 5);
+            drawPlayer(playerX, playerY);
+
+            // swap buffer
+            waitForVSync(); // swap front and back buffers on VGA vertical sync
+            pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+
+            // draw player
+            drawBlack(playerX, playerY, PLAYER_WIDTH + 5, PLAYER_HEIGHT + 5);
+            drawPlayer(playerX, playerY);
+
+            // swap buffer
+            waitForVSync(); // swap front and back buffers on VGA vertical sync
+            pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+
         }
 
         int squidsExistRow = -1;
@@ -359,6 +427,11 @@ int main(void) {
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
         counter++;
     }
+}
+
+void displayBitsOnLED(int num) {
+    volatile int* ledptr = (int*)0xFF200000;
+    *(ledptr) = num;
 }
 
 void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* score,
@@ -1612,6 +1685,30 @@ const short int tapToPlayIcon[656] = {
         0x0000, 0x0000, 0x0000, 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0280 (640) pixels
         0x2104, 0x0000, 0xFFFF, 0xFFFF, 0x0020, 0x0000, 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x0000,   // 0x0290 (656) pixels
 };
+
+const unsigned short playerExplosion[176] = {
+0x0000, 0x0000, 0x0000, 0x15E2, 0x0000, 0x0000, 0x0000, 0x1FE3, 0x1FE3, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x1FE3,   // 0x0010 (16) pixels
+0x0000, 0x1E62, 0x1E62, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x15E2, 0x0000, 0x0000, 0x0000,   // 0x0020 (32) pixels
+0x0000, 0x1E62, 0x1E62, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x15E2, 0x0000, 0x0000, 0x0000,   // 0x0030 (48) pixels
+0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x1FE3, 0x0000, 0x0000, 0x0000, 0x1462, 0x1462, 0x0000, 0x0000, 0x0000, 0x0000,   // 0x0040 (64) pixels
+0x0000, 0x1FE3, 0x1FE3, 0x1FE3, 0x0000, 0x0000, 0x1E62, 0x1FE3, 0x1FE3, 0x15E2, 0x0000, 0x0000, 0x0000, 0x1FE3, 0x1FE3, 0x0000,   // 0x0050 (80) pixels
+0x0000, 0x1FE3, 0x1FE3, 0x1FE3, 0x0000, 0x0000, 0x1E62, 0x1FE3, 0x1FE3, 0x15E2, 0x0000, 0x0000, 0x0000, 0x1FE3, 0x1FE3, 0x0000,   // 0x0060 (96) pixels
+0x0000, 0x0000, 0x0000, 0x1FE3, 0x1E62, 0x1E62, 0x0000, 0x1FE3, 0x1FE3, 0x15E2, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,   // 0x0070 (112) pixels
+0x0000, 0x0000, 0x0000, 0x0000, 0x15E2, 0x15E2, 0x0000, 0x1FE3, 0x1FE3, 0x0000, 0x1542, 0x1542, 0x0000, 0x1EE3, 0x1EE3, 0x0000,   // 0x0080 (128) pixels
+0x0000, 0x1EE3, 0x1EE3, 0x1E62, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0C01, 0x0C01, 0x0C01, 0x0000,   // 0x0090 (144) pixels
+0x0000, 0x1EE3, 0x1EE3, 0x1E62, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0C01, 0x0C01, 0x0C01, 0x0000,   // 0x00A0 (160) pixels
+0x15E2, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x1FE3, 0x1FE3, 0x0000, 0x0000, 0x0000, 0x0C01, 0x0C01, 0x0C01, 0x0000,   // 0x00B0 (176) pixels
+};
+
+void drawPlayerExplosion(int xInit, int yInit) {
+    int index = 0;
+    for (int y = 0; y < 11; ++y) {
+        for (int x = 0; x < 16; ++x) {
+            plotPixel(xInit + x, yInit + y, playerExplosion[index]);
+            index++;
+        }
+    }
+}
 
 
 void drawPlayer(int xInit, int yInit) {
