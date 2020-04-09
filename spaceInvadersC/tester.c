@@ -507,8 +507,8 @@ bool drawEnemyShot(bool *eraseEnemyShot, int * enemyShotPositionX, int* enemySho
         }
 
         *enemyShotPositionX = 0;
-
-        for (int i = *counter % 11; i < 11; ++i) {
+        int i = *counter % 11;
+        for (; i < 11; ++i) {
             *enemyShotPositionX = possibleEnemyShotPositionX[i];
             if (*enemyShotPositionX != 0) {
                 break;
@@ -2835,9 +2835,6 @@ void drawNumberIcon(int num, int xInit, int yInit) {
     }
 }
 
-
-
-
 void drawAllBarriers(int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]){
     for(int j = 0; j < 2; ++j){
         for(int i = 0; i < 4; ++i){
@@ -2867,7 +2864,6 @@ void drawGameOverWords(int xInit, int yInit) {
         }
     }
 }
-
 
 void drawBarrier(int xInit, int yInit) {
     int index = 0;
