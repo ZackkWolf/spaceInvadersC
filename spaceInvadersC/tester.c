@@ -64,7 +64,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
     bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
     bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11],
     int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11],
-    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]);
+    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11], int *lives);
 
 void findLowestEnemyY(bool squids_status[11], bool bunnies_status[2][11], bool skulls_status[2][11],
     int squids_y[11], int bunnies_y[2][11], int skulls_y[2][11], int* lowestEnemyY,
@@ -83,6 +83,7 @@ void displayBitsOnLED(int num);
 void waitOnStartScreen();
 
 void writeText(char textPtr[], int x, int y);
+void playPatterOnLEDs(int* counter, int* subCounter);
 
 bool gameOver = false;
 
@@ -281,7 +282,7 @@ int main(void) {
             &eraseShot, &redSplatPositionX, &redSplatPositionY, &redSplatFrames,
             &eraseRedSplat, squids_x, squids_y, squids_status,
             bunnies_x, bunnies_y, bunnies_status,
-            skulls_x, skulls_y, skulls_status);
+            skulls_x, skulls_y, skulls_status, &lives);
 
 
         // this function draws the enemy shot and updates it position
@@ -325,6 +326,57 @@ int main(void) {
 
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+    }
+}
+
+void playPatterOnLEDs(int *counter, int *subCounter) {
+    volatile int* ledptr = (int*)0xFF200000;
+
+    // display a pretty pattern on the LEDs while we wait
+    if ((*counter) % 20000 == 0) {
+        (*subCounter)++;
+        *counter = 0;
+
+        if (*subCounter < 10) {
+            *(ledptr) = *(ledptr) << 1;
+        }
+        else if (*subCounter == 10) {
+            *(ledptr) = 0x1FF;
+        }
+        else if (*subCounter < 20) {
+            *(ledptr) = *(ledptr) >> 1;
+        }
+        else if (*subCounter == 20) {
+            *(ledptr) = 0x2AA;
+        }
+        else if (*subCounter < 30) {
+            *(ledptr) = ~*(ledptr);
+        }
+        else if (*subCounter == 30) {
+            *(ledptr) = 0x1FE;
+        }
+        else if (*subCounter == 31) {
+            *(ledptr) = 0x0FC;
+        }
+        else if (*subCounter == 32) {
+            *(ledptr) = 0x078;
+        }
+        else if (*subCounter == 33) {
+            *(ledptr) = 0x030;
+        }
+        else if (*subCounter == 34) {
+            *(ledptr) = 0x000;
+        }
+        else if (*subCounter == 35) {
+            *(ledptr) = 0x2AA;
+        }
+        else if (*subCounter < 45) {
+            *(ledptr) = ~*(ledptr);
+        }
+        else {
+            (*subCounter) = 0;
+            *(ledptr) = 0x3FF;
+        }
     }
 }
 
@@ -471,11 +523,20 @@ bool checkForPlayerCollision(int *lives, int enemyShotPositionY, int enemyShotPo
             while (i != 300000) {
                 i++;
             }
-            if (subCounter != 0) {
-                *(ledptr) = ~*(ledptr);
+            if (subCounter == 0) {
+                *(ledptr) = 0x1FE;
             }
-            else {
-                *(ledptr) = 0x2AA;
+            else if (subCounter == 2) {
+                *(ledptr) = 0x0FC;
+            }
+            else if (subCounter == 4) {
+                *(ledptr) = 0x078;
+            }
+            else if (subCounter == 6) {
+                *(ledptr) = 0x030;
+            }
+            else if (subCounter == 8) {
+                *(ledptr) = 0x000;
             }
         }
 
@@ -559,7 +620,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
     bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
     bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11],
     int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11],
-    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]) {
+    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11], int *lives) {
 
     if (*shotFired) {
         *shotFired = false;	// turn the signal low
@@ -572,6 +633,17 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
 
     // check if a shot is in the air
     if (shotColor != 0x0000) {
+
+        if (*shotPositionY < playerY - 70) {
+            displayBitsOnLED(*lives);
+        }
+        else if (*shotPositionY < playerY - 50) {
+            displayBitsOnLED(~0x2AA);
+        }
+        else if (*shotPositionY < playerY - 30){
+            displayBitsOnLED(0x2AA);
+        }
+
         // clear the old shot
         drawVerticalLine(*shotPositionX, *shotPositionY + 4, *shotPositionY + 7, 0x0000);
 
@@ -766,53 +838,8 @@ void waitOnStartScreen() {
     // wait until space is pressed until you swap screens
     // shotFired is turned high when the spacebar is pressed
     while (1) {
-        // display a pretty pattern on the LEDs while we wait
-        if (counter % 40000 == 0) {
-            subCounter++;
-            counter = 0;
-
-            if (subCounter < 10) {
-                *(ledptr) = *(ledptr) << 1;
-            }
-            else if (subCounter == 10) {
-                *(ledptr) = 0x1FF;
-            }
-            else if (subCounter < 20) {
-                *(ledptr) = *(ledptr) >> 1;
-            }
-            else if (subCounter == 20) {
-                *(ledptr) = 0x2AA;
-            }
-            else if (subCounter < 30) {
-                *(ledptr) = ~*(ledptr);
-            }
-            else if (subCounter == 30) {
-                *(ledptr) = 0x1FE;
-            }
-            else if (subCounter == 31) {
-                *(ledptr) = 0x0FC;
-            }
-            else if (subCounter == 32) {
-                *(ledptr) = 0x078;
-            }
-            else if (subCounter == 33) {
-                *(ledptr) = 0x030;
-            }
-            else if (subCounter == 34) {
-                *(ledptr) = 0x000;
-            }
-            else if (subCounter == 35) {
-                *(ledptr) = 0x2AA;
-            }
-            else if (subCounter < 45) {
-                *(ledptr) = ~*(ledptr);
-            }
-            else {
-                subCounter = 0;
-                *(ledptr) = 0x3FF;
-            }
-
-        }
+        //// display a pretty pattern on the LEDs while we wait
+        playPatterOnLEDs(&counter, &subCounter);
 
         if (shotFired) {
             *(ledptr) = 0x00;
@@ -825,6 +852,7 @@ void waitOnStartScreen() {
     waitForVSync(); // swap front and back buffers on VGA vertical sync
     pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
 }
+
 
 /********************************************************************
 * PS2 - Interrupt Service Routine
@@ -862,6 +890,7 @@ void ps2_ISR(void) {
         //makecode = 0x29, breakcode = 0xf029
         else if (twoParts == 0xf029 && shotColor == 0x0000) {					// Released Space and there is not a shot already on screen
             shotFired = true;
+            displayBitsOnLED(0x3FF);
         }
     }
     return;
