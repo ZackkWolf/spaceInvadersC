@@ -21,10 +21,6 @@ void drawVerticalLine(int x, int y0, int y1, short int color);
 //this function draws black from xInit to (xInit + width)
 //and yInit to (yInit + height)
 void drawBlack(int xInit, int yInit, int width, int height);
-
-void clearEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]);
-void drawEnemies(int enemies_x[], int enemies_y[]);
-void updateEnemies(int enemies_x[], int enemies_y[], int enemies_dx[]);
 void drawColour(int xInit, int yInit, int width, int height);
 
 void drawAllEnemies(int skulls_x[2][11], int skulls_y[2][11], int bunnies_x[2][11], int bunnies_y[2][11], int squids_x[], int squids_y[],
@@ -32,6 +28,7 @@ void drawAllEnemies(int skulls_x[2][11], int skulls_y[2][11], int bunnies_x[2][1
 void updateSkulls(int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]);
 void updateBunnies(int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11]);
 void updateSquids(int squids_x[], int squids_y[], bool squids_status[]);
+void updateBarriers(int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]);
 
 void clearSkulls(int skulls_x[2][11], int skulls_y[2][11], int skulls_dx);
 void clearBunnies(int bunnies_x[2][11], int bunnies_y[2][11], int bunnies_dx);
@@ -51,6 +48,8 @@ void drawStartIcon(int xInit, int yInit);
 void drawSpaceIcon(int xInit, int yInit);
 void drawTapToPlayIcon(int xInit, int yInit);
 void drawStartScreen();
+void drawBarrier(int xInit, int yInit);
+void drawAllBarriers(int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]);
 
 void drawGameOverIcon(int xInit, int yInit);
 void drawGameOverWords(int xInit, int yInit);
@@ -64,7 +63,8 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
     bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
     bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11],
     int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11],
-    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11], int *lives);
+    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11], int *lives,
+    int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]);
 
 void findLowestEnemyY(bool squids_status[11], bool bunnies_status[2][11], bool skulls_status[2][11],
     int squids_y[11], int bunnies_y[2][11], int skulls_y[2][11], int* lowestEnemyY,
@@ -75,7 +75,8 @@ bool checkForPlayerCollision(int* lives, int enemyShotPositionY, int enemyShotPo
 bool drawEnemyShot(bool* eraseEnemyShot, int* enemyShotPositionX, int* enemyShotPositionY,
     int* lives, volatile int* pixelCtrlPtr, bool skulls_status[2][11], bool bunnies_status[2][11], bool squids_status[11],
     int skulls_x[2][11], int skulls_y[2][11], int bunnies_x[2][11], int bunnies_y[2][11], int squids_x[11], int squids_y[11],
-    int* lowestEnemyY, bool* eraseLastEnemyShot, int* counter);
+    int* lowestEnemyY, bool* eraseLastEnemyShot, int* counter,
+    int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]);
 
 void displayScoreOnHex3_0(int score);
 void displayBitsOnLED(int num);
@@ -136,11 +137,14 @@ int main(void) {
     int bunnies_y[2][11];
     int squids_x[11];
     int squids_y[11];
+    int barriers_x[2][4];
+    int barriers_y[2][4];
 
     //true = alive, false = dead
     bool skulls_status[2][11];
     bool bunnies_status[2][11];
     bool squids_status[11];
+    bool barriers_status[2][4];
 
     for (int i = 0; i < 11; ++i) {
         squids_x[i] = 70 + ((8 * i) + (i * 10));
@@ -161,6 +165,13 @@ int main(void) {
             skulls_x[j][i] = 69 + ((8 * i) + (i * 10));
             skulls_y[j][i] = 20 + row * 12;
             skulls_status[j][i] = true;
+        }
+    }
+    for(int j = 0; j < 2; ++j){
+        for(int i = 0; i < 4; ++i){
+            barriers_x[j][i] = 60 +(20*i) + i*40;
+            barriers_y[j][i] = 170 + 30*j;
+            barriers_status[j][i] = true;
         }
     }
 
@@ -206,6 +217,8 @@ int main(void) {
     drawBunnySprite0 = false;
     drawSquidSprite0 = false;
 
+    drawAllBarriers(barriers_x,barriers_y, barriers_status);
+
     volatile int* pixelCtrlPtr = (int*)0xFF203020;
 
     // put things that happen every frame regardless of user input here
@@ -221,10 +234,14 @@ int main(void) {
 
     char ece243Text[84] = "ECE243 Space Invaders\0";
     writeText(ece243Text, 1, 1);
-    
-    
 
+    int barrierDrawCounter = 0;
     while (!gameOver) {
+
+        if(barrierDrawCounter < 2){
+            barrierDrawCounter++;
+        }
+
         if (loopCounter == 2) {
             loopCounter = 0;
             justDraw = false;
@@ -239,13 +256,11 @@ int main(void) {
         //draw the enemies in their current position
         if (justDraw) {
             drawAllEnemies(skulls_x, skulls_y, bunnies_x, bunnies_y, squids_x, squids_y, skulls_status, bunnies_status, squids_status);
-            //            printf("draw\n");
+            drawAllBarriers(barriers_x,barriers_y, barriers_status);
             loopCounter++;
-            //            printf("%d\n", loopCounter);
         }
         else if (moveSkulls) {
             updateSkulls(skulls_x, skulls_y, skulls_status);
-            //            printf("update skulls\n");
             if (drawSkullSprite0) drawSkullSprite0 = false;
             else drawSkullSprite0 = true;
             moveBunnies = true;
@@ -254,7 +269,6 @@ int main(void) {
         }
         else if (moveBunnies) {
             updateBunnies(bunnies_x, bunnies_y, bunnies_status);
-            //            printf("update bunnies\n");
             if (drawBunnySprite0) drawBunnySprite0 = false;
             else drawBunnySprite0 = true;
             moveSquids = true;
@@ -263,11 +277,11 @@ int main(void) {
         }
         else if (moveSquids) {
             updateSquids(squids_x, squids_y, squids_status);
-            //            printf("update squids\n");
             if (drawSquidSprite0) drawSquidSprite0 = false;
             else drawSquidSprite0 = true;
             moveSquids = false;
             justDraw = true;
+            updateBarriers(barriers_x, barriers_y, barriers_status);
         }
 
         // move player to new position and draw them
@@ -282,7 +296,8 @@ int main(void) {
             &eraseShot, &redSplatPositionX, &redSplatPositionY, &redSplatFrames,
             &eraseRedSplat, squids_x, squids_y, squids_status,
             bunnies_x, bunnies_y, bunnies_status,
-            skulls_x, skulls_y, skulls_status, &lives);
+            skulls_x, skulls_y, skulls_status, &lives,
+            barriers_x, barriers_y, barriers_status);
 
 
         // this function draws the enemy shot and updates it position
@@ -291,8 +306,8 @@ int main(void) {
         gameOver = drawEnemyShot(&eraseEnemyShot, &enemyShotPositionX, &enemyShotPositionY,
             &lives, pixelCtrlPtr, skulls_status, bunnies_status, squids_status,
             skulls_x, skulls_y, bunnies_x, bunnies_y, squids_x, squids_y,
-            &lowestEnemyY, &eraseLastEnemyShot, &counter);
-
+            &lowestEnemyY, &eraseLastEnemyShot, &counter,
+            barriers_x, barriers_y, barriers_status);
 
         // swap buffers
         waitForVSync(); // swap front and back buffers on VGA vertical sync
@@ -413,7 +428,8 @@ void drawScore(int score) {
 bool drawEnemyShot(bool *eraseEnemyShot, int * enemyShotPositionX, int* enemyShotPositionY,
         int *lives, volatile int * pixelCtrlPtr, bool skulls_status[2][11], bool bunnies_status[2][11], bool squids_status[11],
         int skulls_x[2][11], int skulls_y[2][11], int bunnies_x[2][11], int bunnies_y[2][11], int squids_x[11], int squids_y[11],
-        int * lowestEnemyY, bool * eraseLastEnemyShot, int * counter) {
+        int * lowestEnemyY, bool * eraseLastEnemyShot, int * counter,
+        int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]) {
 
     if (*eraseEnemyShot) {
         drawVerticalLine(*enemyShotPositionX, *enemyShotPositionY - 5, *enemyShotPositionY, 0x0000);
@@ -423,7 +439,6 @@ bool drawEnemyShot(bool *eraseEnemyShot, int * enemyShotPositionX, int* enemySho
         drawVerticalLine(*enemyShotPositionX, *enemyShotPositionY - 4, *enemyShotPositionY - 1, 0x0000);
         *eraseEnemyShot = true;
     }
-
 
     bool isGameOver = checkForPlayerCollision(lives, *enemyShotPositionY, *enemyShotPositionX, pixelCtrlPtr);
 
@@ -438,6 +453,21 @@ bool drawEnemyShot(bool *eraseEnemyShot, int * enemyShotPositionX, int* enemySho
         squids_y, bunnies_y, skulls_y, lowestEnemyY,
         &squidsExistRow, &bunniesExistRow, &skullsExistRow);
 
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 4; ++i) {
+            if ((*enemyShotPositionX) > barriers_x[j][i] &&
+                (*enemyShotPositionX) < (barriers_x[j][i] + 13) &&
+                (*enemyShotPositionY) < (barriers_y[j][i] + 11) &&
+                (*enemyShotPositionY) > barriers_y[j][i] &&
+                barriers_status[j][i]) {
+
+                *eraseEnemyShot = true;   //set this to true so the next frame erases the shot
+
+                barriers_status[j][i] = false;
+                *enemyShotPositionY = *lowestEnemyY;
+            }
+        }
+    }
 
     if (*enemyShotPositionY > SCREEN_HEIGHT && !(*eraseLastEnemyShot)) {
         drawVerticalLine(*enemyShotPositionX, *enemyShotPositionY, *enemyShotPositionY + 3, 0x0000);
@@ -493,7 +523,6 @@ bool drawEnemyShot(bool *eraseEnemyShot, int * enemyShotPositionX, int* enemySho
     }
 
     return isGameOver;
-
 }
 
 bool checkForPlayerCollision(int *lives, int enemyShotPositionY, int enemyShotPositionX, volatile int* pixelCtrlPtr) {
@@ -620,7 +649,8 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
     bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
     bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11],
     int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11],
-    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11], int *lives) {
+    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11], int *lives,
+    int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]) {
 
     if (*shotFired) {
         *shotFired = false;	// turn the signal low
@@ -721,6 +751,32 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                         *redSplatFrames = 1;
 
                         skulls_status[j][i] = false;
+
+                        //up the score and display it on the HEX
+                        (*score) += 10;
+                        displayScoreOnHex3_0(*score);
+                    }
+                }
+            }
+            for (int j = 0; j < 2; ++j) {
+                for (int i = 0; i < 4; ++i) {
+                    if ((*shotPositionX) > barriers_x[j][i] &&
+                        (*shotPositionX) < (barriers_x[j][i] + 14) &&
+                        (*shotPositionY) < (barriers_y[j][i] + 11) &&
+                        (*shotPositionY) > barriers_y[j][i] &&
+                        barriers_status[j][i]) {
+
+                        //printf("here\n");
+                        shotColor = 0x0000;
+                        *eraseShot = true;   //set this to true so the next frame erases the shot
+
+                        //draw the red splat
+                        *redSplatPositionX = *shotPositionX - 4;
+                        *redSplatPositionY = *shotPositionY - 4;
+                        drawRedSplat(*redSplatPositionX, *redSplatPositionY);
+                        *redSplatFrames = 1;
+
+                        barriers_status[j][i] = false;
 
                         //up the score and display it on the HEX
                         (*score) += 10;
@@ -1099,6 +1155,8 @@ void updateSkulls(int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2
             if (skulls_status[j][i]) {
                 if (drawSkullSprite0) drawSkull0(skulls_x[j][i], skulls_y[j][i]);
                 else drawSkull1(skulls_x[j][i], skulls_y[j][i]);
+            } else {
+                drawBlack(skulls_x[j][i]-3, skulls_y[j][i]-1, 17, 10);
             }
 
             if (moveSkullsDown == false) {
@@ -1130,6 +1188,8 @@ void updateBunnies(int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_stat
             if (bunnies_status[j][i]) {
                 if (drawBunnySprite0) drawBunny0(bunnies_x[j][i], bunnies_y[j][i]);
                 else drawBunny1(bunnies_x[j][i], bunnies_y[j][i]);
+            } else {
+                drawBlack(bunnies_x[j][i]-3, bunnies_y[j][i]-1, 16, 10);
             }
 
             if (moveBunniesDown == false) {
@@ -1160,6 +1220,8 @@ void updateSquids(int squids_x[], int squids_y[], bool squids_status[]) {
         if (squids_status[i]) {
             if (drawSquidSprite0) drawSquid0(squids_x[i], squids_y[i]);
             else drawSquid1(squids_x[i], squids_y[i]);
+        } else {
+            drawBlack(squids_x[i]-5, squids_y[i]-1, 15, 10);
         }
 
         if (moveSquidsDown == false) {
@@ -1183,6 +1245,17 @@ void updateSquids(int squids_x[], int squids_y[], bool squids_status[]) {
     }
 }
 
+void updateBarriers(int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]){
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 4; ++i) {
+            if (barriers_status[j][i]) {
+                drawBarrier(barriers_x[j][i], barriers_y[j][i]);
+            } else {
+                drawBlack(barriers_x[j][i]-3, barriers_y[j][i]-4, 20, 20);
+            }
+        }
+    }
+}
 
 /* setup the PS2 interrupts in the FPGA */
 void config_PS2(void) {
@@ -2740,12 +2813,37 @@ const unsigned short numberIcon[10][224] = {
     0x47E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x47E0, 0x47E0, 0x47E0, 0x0000,   // 0x00E0 (224) pixels
 } };
 
+const unsigned short barrier[154] ={
+        0x0000, 0x0000, 0x0340, 0x1DA3, 0x1DC3, 0x1DA3, 0x1DC3, 0x1DC3, 0x1DC3, 0x1DC3, 0x3566, 0x3446, 0x0000, 0x0000, 0x0000, 0x0400,   // 0x0010 (16) pixels
+        0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x24A4, 0x0000, 0x00E0, 0x27E3, 0x1FE3, 0x1FE3,   // 0x0020 (32) pixels
+        0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x27E3, 0x0120, 0x0500, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3,   // 0x0030 (48) pixels
+        0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x4648, 0x0500, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3,   // 0x0040 (64) pixels
+        0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x4648, 0x0500, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3,   // 0x0050 (80) pixels
+        0x1FE3, 0x1FE3, 0x1FE3, 0x4648, 0x0500, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3,   // 0x0060 (96) pixels
+        0x1FE3, 0x4648, 0x0500, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x1FE3, 0x4648,   // 0x0070 (112) pixels
+        0x0500, 0x1FE3, 0x1FE3, 0x3FA6, 0x3E67, 0x01A0, 0x01A0, 0x01A0, 0x0200, 0x27E4, 0x1FE3, 0x1FE3, 0x1FE3, 0x4648, 0x0500, 0x1FE3,   // 0x0080 (128) pixels
+        0x27E4, 0x0921, 0x0020, 0x0000, 0x0000, 0x0000, 0x0000, 0x0340, 0x1FE3, 0x1FE3, 0x1FE3, 0x4648, 0x0BC1, 0x2E24, 0x3605, 0x0000,   // 0x0090 (144) pixels
+};
+
 void drawNumberIcon(int num, int xInit, int yInit) {
     int index = 0;
     for (int y = 0; y < 16; ++y) {
         for (int x = 0; x < 14; ++x) {
             plotPixel(xInit + x, yInit + y, numberIcon[num][index]);
             index++;
+        }
+    }
+}
+
+
+
+
+void drawAllBarriers(int barriers_x[2][4], int barriers_y[2][4], bool barriers_status[2][4]){
+    for(int j = 0; j < 2; ++j){
+        for(int i = 0; i < 4; ++i){
+            if(barriers_status[j][i]){
+                drawBarrier(barriers_x[j][i], barriers_y[j][i]);
+            }
         }
     }
 }
@@ -2765,6 +2863,16 @@ void drawGameOverWords(int xInit, int yInit) {
     for (int y = 0; y < 25; ++y) {
         for (int x = 0; x < 237; ++x) {
             plotPixel(xInit + x, yInit + y, gameOverWordsIcon[index]);
+        }
+    }
+}
+
+
+void drawBarrier(int xInit, int yInit) {
+    int index = 0;
+    for (int y = 0; y < 11; ++y) {
+        for (int x = 0; x < 14; ++x) {
+            plotPixel(xInit + x, yInit + y, barrier[index]);
             index++;
         }
     }
