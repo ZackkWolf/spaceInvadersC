@@ -60,6 +60,17 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
     int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11],
     int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]);
 
+void findLowestEnemyY(bool squids_status[11], bool bunnies_status[2][11], bool skulls_status[2][11],
+    int squids_y[11], int bunnies_y[2][11], int skulls_y[2][11], int* lowestEnemyY,
+    int* squidsExistRow, int* bunniesExistRow, int* skullsExistRow);
+
+bool checkForPlayerCollision(int* lives, int enemyShotPositionY, int enemyShotPositionX, volatile int* pixelCtrlPtr);
+
+bool drawEnemyShot(bool* eraseEnemyShot, int* enemyShotPositionX, int* enemyShotPositionY,
+    int* lives, volatile int* pixelCtrlPtr, bool skulls_status[2][11], bool bunnies_status[2][11], bool squids_status[11],
+    int skulls_x[2][11], int skulls_y[2][11], int bunnies_x[2][11], int bunnies_y[2][11], int squids_x[11], int squids_y[11],
+    int* lowestEnemyY, bool* eraseLastEnemyShot, int* counter);
+
 void displayScoreOnHex3_0(int score);
 void displayBitsOnLED(int num);
 
@@ -253,179 +264,210 @@ int main(void) {
             skulls_x, skulls_y, skulls_status);
 
 
-
-        if (eraseEnemyShot) {
-            drawVerticalLine(enemyShotPositionX, enemyShotPositionY - 5, enemyShotPositionY, 0x0000);
-            eraseEnemyShot = false;
-        }
-        else if (!eraseEnemyShot) {
-            drawVerticalLine(enemyShotPositionX, enemyShotPositionY - 4, enemyShotPositionY - 1, 0x0000);
-            eraseEnemyShot = true;
-        }
-
-        if (enemyShotPositionY == playerY &&
-            enemyShotPositionX >= playerX &&
-            enemyShotPositionX <= playerX + PLAYER_WIDTH) {
-
-            // draw explosion
-            drawPlayerExplosion(playerX, playerY);
-
-            // swap buffer
-            waitForVSync(); // swap front and back buffers on VGA vertical sync
-            pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
-
-            // draw explosion
-            drawPlayerExplosion(playerX, playerY);
-
-            // swap buffer
-            waitForVSync(); // swap front and back buffers on VGA vertical sync
-            pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
-
-            // flash the LEDs
-            volatile int* ledptr = (int*)0xFF200000;
-
-			for (int subCounter = 0; subCounter < 10; subCounter++) {
-				int i = 0;
-				while (i != 300000) {
-					i++;
-				}
-				if (subCounter != 0) {
-					*(ledptr) = ~*(ledptr);
-				}
-				else {
-					*(ledptr) = 0x2AA;
-				}
-			}
-            
-
-
-            if (lives == 0b001) {
-                lives = 0x000;
-                displayBitsOnLED(lives);
-
-                // draw game over screen here
-                break;
-            }
-            else if (lives == 0b011) {
-                lives = 0x001;
-                displayBitsOnLED(lives);
-            }
-            else {
-                lives = 0x003;
-                displayBitsOnLED(lives);
-            }
-
-            // draw player
-            drawBlack(playerX, playerY, PLAYER_WIDTH + 5, PLAYER_HEIGHT + 5);
-            drawPlayer(playerX, playerY);
-
-            // swap buffer
-            waitForVSync(); // swap front and back buffers on VGA vertical sync
-            pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
-
-            // draw player
-            drawBlack(playerX, playerY, PLAYER_WIDTH + 5, PLAYER_HEIGHT + 5);
-            drawPlayer(playerX, playerY);
-
-            // swap buffer
-            waitForVSync(); // swap front and back buffers on VGA vertical sync
-            pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
-
-        }
-
-        int squidsExistRow = -1;
-        int bunniesExistRow = -1;
-        int skullsExistRow = -1;
-
-        // update the lowestEnemyY to see where to draw the nest shot
-        for (int i = 0; i < 11; ++i) {
-            if (squids_status[i]) {
-                lowestEnemyY = squids_y[i] + 8;
-                squidsExistRow = 0;
-                break;
-            }
-        }
-        for (int j = 1; j >= 0; ++j) {
-            for (int i = 0; i < 11; ++i) {
-                if (bunnies_status[j][i]) {
-                    lowestEnemyY = bunnies_y[i][j] + 8;
-                    bunniesExistRow = j;
-                    break;
-                }
-            }
-        }
-        for (int j = 1; j >= 0; ++j) {
-            for (int i = 0; i < 11; ++i) {
-                if (skulls_status[j][i]) {
-                    lowestEnemyY = skulls_y[j][i] + 8;
-                    skullsExistRow = j;
-                    break;
-                }
-            }
-        }
-
-
-        if (enemyShotPositionY > SCREEN_HEIGHT && !eraseLastEnemyShot) {
-            drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, 0x0000);
-            eraseLastEnemyShot = true;
-        }
-        else if (eraseLastEnemyShot)
-        {
-            drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, 0x0000);
-            eraseLastEnemyShot = false;
-            enemyShotPositionY = lowestEnemyY;
-
-            // update the shotPositionX
-
-            // first find the possible X positions and store them in an array
-            int possibleEnemyShotPositionX[11] = { 0 };
-
-            if (skullsExistRow != -1) {
-                for (int i = 0; i < 11; ++i) {
-                    if (skulls_status[skullsExistRow][i]) {
-                        possibleEnemyShotPositionX[i] = skulls_x[skullsExistRow][i] + 6; // 6 is half the width of the skull icon
-                    }
-                }
-            }
-            else if (bunniesExistRow != -1) {
-                for (int i = 0; i < 11; ++i) {
-                    if (bunnies_status[bunniesExistRow][i]) {
-                        possibleEnemyShotPositionX[i] = bunnies_x[bunniesExistRow][i] + 6; // 5 is half the width of the skull icon
-                    }
-                }
-            }
-            else if (squidsExistRow != -1) {
-                for (int i = 0; i < 11; ++i) {
-                    if (squids_status[i]) {
-                        possibleEnemyShotPositionX[i] = squids_x[i] + 4; // 4 is half the width of the skull icon
-                    }
-                }
-            }
-
-            enemyShotPositionX = 0;
-
-            for (int i = counter % 11; i < 11; ++i) {
-                enemyShotPositionX = possibleEnemyShotPositionX[i];
-                printf("%d\n", enemyShotPositionX);
-                if (enemyShotPositionX != 0) {
-                    /*printf("%d\n", enemyShotPositionX);*/
-                    break;
-                }
-                if (i == 10) i = 0;
-                if (counter > 10000000) counter = 0;
-            }
-        }
-
-        if (!eraseLastEnemyShot) {
-            enemyShotPositionY += 4;
-            drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, enemyShotColor);
-        }
+        // this function draws the enemy shot and updates it position
+        // it returns true if there was a collision with the shot and the player
+        gameOver = drawEnemyShot(&eraseEnemyShot, &enemyShotPositionX, &enemyShotPositionY,
+            &lives, pixelCtrlPtr, skulls_status, bunnies_status, squids_status,
+            skulls_x, skulls_y, bunnies_x, bunnies_y, squids_x, squids_y,
+            &lowestEnemyY, &eraseLastEnemyShot, &counter);
 
 
         // swap buffers
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
         counter++;
+    }
+}
+
+bool drawEnemyShot(bool *eraseEnemyShot, int * enemyShotPositionX, int* enemyShotPositionY,
+        int *lives, volatile int * pixelCtrlPtr, bool skulls_status[2][11], bool bunnies_status[2][11], bool squids_status[11],
+        int skulls_x[2][11], int skulls_y[2][11], int bunnies_x[2][11], int bunnies_y[2][11], int squids_x[11], int squids_y[11],
+        int * lowestEnemyY, bool * eraseLastEnemyShot, int * counter) {
+
+    if (*eraseEnemyShot) {
+        drawVerticalLine(*enemyShotPositionX, *enemyShotPositionY - 5, *enemyShotPositionY, 0x0000);
+        *eraseEnemyShot = false;
+    }
+    else if (!(*eraseEnemyShot)) {
+        drawVerticalLine(*enemyShotPositionX, *enemyShotPositionY - 4, *enemyShotPositionY - 1, 0x0000);
+        *eraseEnemyShot = true;
+    }
+
+
+    bool isGameOver = checkForPlayerCollision(lives, *enemyShotPositionY, *enemyShotPositionX, pixelCtrlPtr);
+
+    if (isGameOver) {
+        return isGameOver;
+    }
+
+    int squidsExistRow, bunniesExistRow, skullsExistRow;
+
+    // update the lowestEnemyY to see where to draw the nest shot
+    findLowestEnemyY(squids_status, bunnies_status, skulls_status,
+        squids_y, bunnies_y, skulls_y, lowestEnemyY,
+        &squidsExistRow, &bunniesExistRow, &skullsExistRow);
+
+
+    if (*enemyShotPositionY > SCREEN_HEIGHT && !(*eraseLastEnemyShot)) {
+        drawVerticalLine(*enemyShotPositionX, *enemyShotPositionY, *enemyShotPositionY + 3, 0x0000);
+        *eraseLastEnemyShot = true;
+    }
+    else if (*eraseLastEnemyShot)
+    {
+        drawVerticalLine(*enemyShotPositionX, *enemyShotPositionY, *enemyShotPositionY + 3, 0x0000);
+        *eraseLastEnemyShot = false;
+        *enemyShotPositionY = *lowestEnemyY;
+
+        // update the shotPositionX
+
+        // first find the possible X positions and store them in an array
+        int possibleEnemyShotPositionX[11] = { 0 };
+
+        if (skullsExistRow != -1) {
+            for (int i = 0; i < 11; ++i) {
+                if (skulls_status[skullsExistRow][i]) {
+                    possibleEnemyShotPositionX[i] = skulls_x[skullsExistRow][i] + 6; // 6 is half the width of the skull icon
+                }
+            }
+        }
+        else if (bunniesExistRow != -1) {
+            for (int i = 0; i < 11; ++i) {
+                if (bunnies_status[bunniesExistRow][i]) {
+                    possibleEnemyShotPositionX[i] = bunnies_x[bunniesExistRow][i] + 6; // 5 is half the width of the skull icon
+                }
+            }
+        }
+        else if (squidsExistRow != -1) {
+            for (int i = 0; i < 11; ++i) {
+                if (squids_status[i]) {
+                    possibleEnemyShotPositionX[i] = squids_x[i] + 4; // 4 is half the width of the skull icon
+                }
+            }
+        }
+
+        *enemyShotPositionX = 0;
+
+        for (int i = *counter % 11; i < 11; ++i) {
+            *enemyShotPositionX = possibleEnemyShotPositionX[i];
+            if (*enemyShotPositionX != 0) {
+                break;
+            }
+            if (i == 10) i = 0;
+        }
+    }
+
+    if (!(*eraseLastEnemyShot)) {
+        *enemyShotPositionY += 4;
+        drawVerticalLine(*enemyShotPositionX, *enemyShotPositionY, *enemyShotPositionY + 3, enemyShotColor);
+    }
+
+    return isGameOver;
+
+}
+
+bool checkForPlayerCollision(int *lives, int enemyShotPositionY, int enemyShotPositionX, volatile int* pixelCtrlPtr) {
+    if (enemyShotPositionY == playerY &&
+        enemyShotPositionX >= playerX &&
+        enemyShotPositionX <= playerX + PLAYER_WIDTH) {
+
+        // draw explosion
+        drawPlayerExplosion(playerX, playerY);
+
+        // swap buffer
+        waitForVSync(); // swap front and back buffers on VGA vertical sync
+        pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+
+        // draw explosion
+        drawPlayerExplosion(playerX, playerY);
+
+        // swap buffer
+        waitForVSync(); // swap front and back buffers on VGA vertical sync
+        pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+
+        // flash the LEDs
+        volatile int* ledptr = (int*)0xFF200000;
+
+        for (int subCounter = 0; subCounter < 10; subCounter++) {
+            int i = 0;
+            while (i != 300000) {
+                i++;
+            }
+            if (subCounter != 0) {
+                *(ledptr) = ~*(ledptr);
+            }
+            else {
+                *(ledptr) = 0x2AA;
+            }
+        }
+
+        if (*lives == 0b001) {
+            *lives = 0x000;
+            displayBitsOnLED(*lives);
+
+            return true;
+        }
+        else if (*lives == 0b011) {
+            *lives = 0x001;
+            displayBitsOnLED(*lives);
+        }
+        else {
+            *lives = 0x003;
+            displayBitsOnLED(*lives);
+        }
+
+        // draw player
+        drawBlack(playerX, playerY, PLAYER_WIDTH + 5, PLAYER_HEIGHT + 5);
+        drawPlayer(playerX, playerY);
+
+        // swap buffer
+        waitForVSync(); // swap front and back buffers on VGA vertical sync
+        pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+
+        // draw player
+        drawBlack(playerX, playerY, PLAYER_WIDTH + 5, PLAYER_HEIGHT + 5);
+        drawPlayer(playerX, playerY);
+
+        // swap buffer
+        waitForVSync(); // swap front and back buffers on VGA vertical sync
+        pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+    }
+
+    return false;
+
+}
+
+void findLowestEnemyY(bool squids_status[11], bool bunnies_status[2][11], bool skulls_status[2][11],
+        int squids_y[11], int bunnies_y[2][11], int skulls_y[2][11], int *lowestEnemyY,
+        int * squidsExistRow, int * bunniesExistRow, int * skullsExistRow) {
+    *squidsExistRow = -1;
+    *bunniesExistRow = -1;
+    *skullsExistRow = -1;
+
+    // update the lowestEnemyY to see where to draw the nest shot
+    for (int j = 1; j >= 0; --j) {
+        for (int i = 0; i < 11; ++i) {
+            if (skulls_status[j][i]) {
+                *lowestEnemyY = skulls_y[j][i] + 8;
+                *skullsExistRow = j;
+                return;
+            }
+        }
+    }
+    for (int j = 1; j >= 0; --j) {
+        for (int i = 0; i < 11; ++i) {
+            if (bunnies_status[j][i]) {
+                *lowestEnemyY = bunnies_y[i][j] + 8;
+                *bunniesExistRow = j;
+                return;
+            }
+        }
+    }
+    for (int i = 0; i < 11; ++i) {
+        if (squids_status[i]) {
+            *lowestEnemyY = squids_y[i] + 8;
+            *squidsExistRow = 0;
+            return;
+        }
     }
 }
 
@@ -447,8 +489,6 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
         shotColor = 0xFFFF;
         *shotPositionX = playerX + PLAYER_WIDTH / 2;
         *shotPositionY = playerY - 7;
-
-        //printf("%d\n", pixelBufferStart);
     }
 
     // check if a shot is in the air
@@ -481,7 +521,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                     squids_status[i] = false;
 
                     //up the score and display it on the HEX
-                    (*score)++;
+                    (*score) += 50;
                     displayScoreOnHex3_0(*score);
                 }
             }
@@ -506,17 +546,17 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                         bunnies_status[j][i] = false;
 
                         //up the score and display it on the HEX
-                        (*score)++;
+                        (*score) += 20;
                         displayScoreOnHex3_0(*score);
                     }
                 }
             }
             for (int j = 0; j < 2; ++j) {
                 for (int i = 0; i < 11; ++i) {
-                    if (*shotPositionX > skulls_x[j][i] &&
-                        *shotPositionX < (skulls_x[j][i] + 12) &&
-                        *shotPositionY < (skulls_y[j][i] + 8) &&
-                        *shotPositionY > skulls_y[j][i] &&
+                    if ((*shotPositionX) > skulls_x[j][i] &&
+                        (*shotPositionX) < (skulls_x[j][i] + 12) &&
+                        (*shotPositionY) < (skulls_y[j][i] + 8) &&
+                        (*shotPositionY) > skulls_y[j][i] &&
                         skulls_status[j][i]) {
 
                         //printf("here\n");
@@ -532,7 +572,7 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
                         skulls_status[j][i] = false;
 
                         //up the score and display it on the HEX
-                        (*score)++;
+                        (*score) += 10;
                         displayScoreOnHex3_0(*score);
                     }
                 }
