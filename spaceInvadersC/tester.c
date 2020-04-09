@@ -82,6 +82,8 @@ void displayBitsOnLED(int num);
 
 void waitOnStartScreen();
 
+void writeText(char textPtr[], int x, int y);
+
 bool gameOver = false;
 
 const int PLAYER_WIDTH = 11;
@@ -186,6 +188,13 @@ int main(void) {
 
     displayScoreOnHex3_0(score); // reset score on HEX
 
+    // reset the character buffers
+    char byUsBlank[76] = "                   \0";
+    writeText(byUsBlank, 57, 56);
+
+    char ece243TextBlank[84] = "                     \0";
+    writeText(ece243TextBlank, 1, 1);
+
     waitOnStartScreen();
 
     // draw the next screen
@@ -208,6 +217,11 @@ int main(void) {
     int counter = 0;
     int lives = 0b111;
     displayBitsOnLED(lives);
+
+    char ece243Text[84] = "ECE243 Space Invaders\0";
+    writeText(ece243Text, 1, 1);
+    
+    
 
     while (!gameOver) {
         if (loopCounter == 2) {
@@ -298,6 +312,11 @@ int main(void) {
     drawGameOverIcon(SCREEN_WIDTH / 2 - 90 / 2, 20);
     drawGameOverWords(SCREEN_WIDTH / 2 - 237 / 2, 100);
 
+    writeText(ece243TextBlank, 1, 1);
+
+    char byUs[76] = "By: Sean and Joseph\0";
+    writeText(byUs, 57, 56);
+
     while (1) {
         int i = 0;
         while (i != 600000) {
@@ -306,6 +325,18 @@ int main(void) {
 
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
+    }
+}
+
+void writeText(char textPtr[], int x, int y) {
+    volatile char* characterBuffer = (char*)0xC9000000;
+
+    int offset = (y << 7) + x;
+
+    while (*textPtr) {
+        *(characterBuffer + offset) = *textPtr;
+        ++textPtr;
+        ++offset;
     }
 }
 
@@ -2719,7 +2750,6 @@ void drawPlayerExplosion(int xInit, int yInit) {
         }
     }
 }
-
 
 void drawPlayer(int xInit, int yInit) {
     for (int y = 0; y < PLAYER_HEIGHT; ++y) {
