@@ -243,19 +243,19 @@ int main(void) {
         // up date its position
         // draw the red splat when it reaches the top of the screen
         drawShot(&shotFired, &shotPositionX, &shotPositionY, &score,
-                 &eraseShot, &redSplatPositionX, &redSplatPositionY, &redSplatFrames,
-                 &eraseRedSplat, squids_x, squids_y, squids_status,
-                 bunnies_x, bunnies_y, bunnies_status,
-                 skulls_x, skulls_y, skulls_status);
+            &eraseShot, &redSplatPositionX, &redSplatPositionY, &redSplatFrames,
+            &eraseRedSplat, squids_x, squids_y, squids_status,
+            bunnies_x, bunnies_y, bunnies_status,
+            skulls_x, skulls_y, skulls_status);
 
-        
-        
+
+
         if (eraseEnemyShot) {
             drawVerticalLine(enemyShotPositionX, enemyShotPositionY - 5, enemyShotPositionY, 0x0000);
             eraseEnemyShot = false;
         }
         else if (!eraseEnemyShot) {
-            drawVerticalLine(enemyShotPositionX, enemyShotPositionY - 4, enemyShotPositionY  - 1, 0x0000);
+            drawVerticalLine(enemyShotPositionX, enemyShotPositionY - 4, enemyShotPositionY - 1, 0x0000);
             eraseEnemyShot = true;
         }
 
@@ -296,7 +296,7 @@ int main(void) {
             }
         }
 
-        
+
         if (enemyShotPositionY > SCREEN_HEIGHT && !eraseLastEnemyShot) {
             drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, 0x0000);
             eraseLastEnemyShot = true;
@@ -334,26 +334,26 @@ int main(void) {
                 }
             }
 
-			enemyShotPositionX = 0;
+            enemyShotPositionX = 0;
 
-			for (int i = counter % 11; i < 11; ++i) {
-				enemyShotPositionX = possibleEnemyShotPositionX[i];
+            for (int i = counter % 11; i < 11; ++i) {
+                enemyShotPositionX = possibleEnemyShotPositionX[i];
                 printf("%d\n", enemyShotPositionX);
                 if (enemyShotPositionX != 0) {
                     /*printf("%d\n", enemyShotPositionX);*/
                     break;
                 }
-				if (i == 10) i = 0;
-				if (counter > 10000000) counter = 0;
-			}
-		}
+                if (i == 10) i = 0;
+                if (counter > 10000000) counter = 0;
+            }
+        }
 
         if (!eraseLastEnemyShot) {
             enemyShotPositionY += 4;
             drawVerticalLine(enemyShotPositionX, enemyShotPositionY, enemyShotPositionY + 3, enemyShotColor);
         }
-            
-        
+
+
         // swap buffers
         waitForVSync(); // swap front and back buffers on VGA vertical sync
         pixelBufferStart = *(pixelCtrlPtr + 1); // new back buffer
@@ -362,10 +362,10 @@ int main(void) {
 }
 
 void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, int* score,
-              bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
-              bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11], 
-              int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11], 
-              int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]) {
+    bool* eraseShot, int* redSplatPositionX, int* redSplatPositionY, int* redSplatFrames,
+    bool* eraseRedSplat, int squids_x[11], int squids_y[11], bool squids_status[11],
+    int bunnies_x[2][11], int bunnies_y[2][11], bool bunnies_status[2][11],
+    int skulls_x[2][11], int skulls_y[2][11], bool skulls_status[2][11]) {
 
     if (*shotFired) {
         *shotFired = false;	// turn the signal low
@@ -390,10 +390,10 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
 
             for (int i = 0; i < 11; ++i) {
                 if (*shotPositionX > squids_x[i] &&
-                        *shotPositionX < (squids_x[i] + 8) &&
-                        *shotPositionY < (squids_y[i] + 8) &&
-                        *shotPositionY > squids_y[i] &&
-                        squids_status[i]) {
+                    *shotPositionX < (squids_x[i] + 8) &&
+                    *shotPositionY < (squids_y[i] + 8) &&
+                    *shotPositionY > squids_y[i] &&
+                    squids_status[i]) {
 
                     //printf("here\n");
                     shotColor = 0x0000;
@@ -415,10 +415,10 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
             for (int j = 0; j < 2; ++j) {
                 for (int i = 0; i < 11; ++i) {
                     if (*shotPositionX > bunnies_x[j][i] &&
-                            *shotPositionX < (bunnies_x[j][i] + 11) &&
-                            *shotPositionY < (bunnies_y[j][i] + 8) && 
-                            *shotPositionY > bunnies_y[j][i] && 
-                            bunnies_status[j][i]) {
+                        *shotPositionX < (bunnies_x[j][i] + 11) &&
+                        *shotPositionY < (bunnies_y[j][i] + 8) &&
+                        *shotPositionY > bunnies_y[j][i] &&
+                        bunnies_status[j][i]) {
 
                         //printf("here\n");
                         shotColor = 0x0000;
@@ -441,10 +441,10 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
             for (int j = 0; j < 2; ++j) {
                 for (int i = 0; i < 11; ++i) {
                     if (*shotPositionX > skulls_x[j][i] &&
-                            *shotPositionX < (skulls_x[j][i] + 12) &&
-                            *shotPositionY < (skulls_y[j][i] + 8) &&
-                            *shotPositionY > skulls_y[j][i] &&
-                            skulls_status[j][i]) {
+                        *shotPositionX < (skulls_x[j][i] + 12) &&
+                        *shotPositionY < (skulls_y[j][i] + 8) &&
+                        *shotPositionY > skulls_y[j][i] &&
+                        skulls_status[j][i]) {
 
                         //printf("here\n");
                         shotColor = 0x0000;
@@ -506,14 +506,14 @@ void drawShot(volatile bool* shotFired, int* shotPositionX, int* shotPositionY, 
 }
 
 
-void movePlayer(volatile bool *moveLeft, bool* drawLeft, volatile bool* moveRight, bool *drawRight) {
+void movePlayer(volatile bool* moveLeft, bool* drawLeft, volatile bool* moveRight, bool* drawRight) {
     if (*moveLeft) {
         *moveLeft = false;
         // draw black on the right of the player to clear their trail
-        drawBlack(playerX + PLAYER_WIDTH - 2, playerY + 3, 4, 5);
+        drawBlack(playerX + PLAYER_WIDTH - 4, playerY, 8, 8);
 
         // move the player left
-        (playerX) -= 2;
+        (playerX) -= 4;
         drawPlayer(playerX, playerY);
 
         *drawLeft = true;		// signal to update next screen
@@ -522,17 +522,17 @@ void movePlayer(volatile bool *moveLeft, bool* drawLeft, volatile bool* moveRigh
         *drawLeft = false;
 
         // draw black on the right of the player to clear their trail
-        drawBlack(playerX + PLAYER_WIDTH, playerY + 3, 2, 5);
+        drawBlack(playerX + PLAYER_WIDTH, playerY + 3, 8, 5);
 
         drawPlayer(playerX, playerY);
     }
     else if (*moveRight) {
         *moveRight = false;
         // draw black on the left of the player to clear their trail
-        drawBlack(playerX - 2, playerY + 3, 4, 5);
+        drawBlack(playerX - 8, playerY, 16, 8);
 
         // move the player right
-        (playerX) += 2;
+        (playerX) += 4;
         drawPlayer(playerX, playerY);
 
         *drawRight = true;		// signal to update next screen
@@ -541,7 +541,7 @@ void movePlayer(volatile bool *moveLeft, bool* drawLeft, volatile bool* moveRigh
         *drawRight = false;
 
         // draw black on the left of the player to clear their trail
-        drawBlack(playerX - 2, playerY + 3, 2, 5);
+        drawBlack(playerX - 4, playerY + 3, 8, 5);
 
         drawPlayer(playerX, playerY);
     }
@@ -582,19 +582,19 @@ void waitOnStartScreen() {
             if (subCounter < 10) {
                 *(ledptr) = *(ledptr) << 1;
             }
-            else if (subCounter == 10){
+            else if (subCounter == 10) {
                 *(ledptr) = 0x1FF;
             }
-            else if (subCounter < 20){
+            else if (subCounter < 20) {
                 *(ledptr) = *(ledptr) >> 1;
             }
-            else if (subCounter == 20){
+            else if (subCounter == 20) {
                 *(ledptr) = 0x2AA;
             }
             else if (subCounter < 30) {
                 *(ledptr) = ~*(ledptr);
             }
-            else if (subCounter == 30){
+            else if (subCounter == 30) {
                 *(ledptr) = 0x1FE;
             }
             else if (subCounter == 31) {
@@ -661,13 +661,13 @@ void ps2_ISR(void) {
         if (twoParts == 0xe074 && playerX < (SCREEN_WIDTH - PLAYER_WIDTH)) {   	// Pressed Right and the player is not on the edge of the screen
             moveRight = true;
         }
-            //Left Key
-            //makecode = 0xe06b, breakcode = 0xe0f06b
+        //Left Key
+        //makecode = 0xe06b, breakcode = 0xe0f06b
         else if (twoParts == 0xe06b && playerX > PLAYER_WIDTH) {                // Pressed Left and the player is not on the edge of the screen
             moveLeft = true;
         }
-            //Space Key
-            //makecode = 0x29, breakcode = 0xf029
+        //Space Key
+        //makecode = 0x29, breakcode = 0xf029
         else if (twoParts == 0xf029 && shotColor == 0x0000) {					// Released Space and there is not a shot already on screen
             shotFired = true;
         }
