@@ -12,7 +12,7 @@ Space Invaders video game written in C for the DE1-SoC board
 > Change the language from ARMv7 to C
 ** Include graphic **
 
-> Click 'Compile and Load' button or press F5
+> Copy and paste main.c into the Editor. Click 'Compile and Load' button or press F5
 ** Include graphic **
 
 > Click and drag the windows on the left to the below configuration:
@@ -38,7 +38,7 @@ Shoot and destroy all enemies while avoiding their fire. The green barricades at
  > Try and win!
  
  ## Team
-| <a href="http://fvcproductions.com" target="_blank">**Joseph Fontanilla**</a> | <a href="http://fvcproductions.com" target="_blank">**Sean Llera**</a> |
+| <a>**Joseph Fontanilla**</a> | <a>**Sean Llera**</a> |
 | :---: |:---:|
-| [![FVCproductions](https://avatars1.githubusercontent.com/u/4284691?v=3&s=200)](http://fvcproductions.com)    | [![FVCproductions](https://avatars1.githubusercontent.com/u/4284691?v=3&s=200)](http://fvcproductions.com) |
+| [![INSERT YOUR GRAPHIC HERE](https://avatars1.githubusercontent.com/u/49335141?v=4&s=50)]() | [![INSERT YOUR GRAPHIC HERE](https://avatars2.githubusercontent.com/u/60166218?v=4&s=50)]()  |
 | <a href="https://github.com/fontan10" target="_blank">`https://github.com/fontan10`</a> | <a href="https://github.com/ayshon" target="_blank">`https://github.com/ayshon`</a> |
